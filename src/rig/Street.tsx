@@ -1,10 +1,13 @@
-import { useId } from 'react';
-import type { Environment } from './types';
+import type { TimeOfDay } from './types';
+import { stableId } from './id';
 
 export interface StreetLayerProps {
   distance?: number;
   direction?: 1 | -1;
-  environment?: Environment;
+  /** Lighting pass. Preferred name since v2. */
+  timeOfDay?: TimeOfDay;
+  /** @deprecated Alias of `timeOfDay`, kept for v1 callers. */
+  environment?: TimeOfDay;
   parallax?: number;
   time?: number;
 }
@@ -138,19 +141,19 @@ function Bench({ x, p }: { x: number; p: Palette }) {
 }
 
 /** Reusable, deterministic street layer. `distance` is in screen pixels. */
-export function StreetLayer({ distance = 0, direction = 1, environment = 'day', parallax = 0.7, time = 0 }: StreetLayerProps) {
-  const uid = useId().replace(/:/g, '');
-  const p = PALETTES[environment];
-  const night = environment === 'night';
+export function StreetLayer({ distance = 0, direction = 1, timeOfDay, environment, parallax = 0.7, time = 0 }: StreetLayerProps) {
+  const tod: TimeOfDay = timeOfDay ?? environment ?? 'day';
+  const p = PALETTES[tod];
+  const night = tod === 'night';
   const px = Math.max(0, Math.min(1, parallax));
-  const skyId = `sky-${uid}`;
+  const skyId = stableId('sky', p.skyTop, p.skyBottom);
   const farX = offset(distance, direction, 0.12 * px);
   const treeX = offset(distance, direction, 0.32 * px);
   const shopX = offset(distance, direction, 0.55 + 0.45 * px);
   const groundX = offset(distance, direction, 1);
   const drift = Math.sin(time * 0.12) * 18;
   return (
-    <g data-street={environment}>
+    <g data-street={tod}>
       <defs>
         <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={p.skyTop} />
@@ -242,7 +245,7 @@ export function StreetLayer({ distance = 0, direction = 1, environment = 'day', 
 
 export function Street(props: StreetLayerProps) {
   return (
-    <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={`${props.environment ?? 'day'} street environment`}>
+    <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={`${props.timeOfDay ?? props.environment ?? 'day'} street environment`}>
       <StreetLayer {...props} />
     </svg>
   );

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Activity, ArrowLeftRight, Camera, ChevronDown, Glasses, ImagePlus, Layers, Palette, PersonStanding, SlidersHorizontal, Sparkles, Trash2, Upload, Backpack, Eye, Footprints, Gauge, MoveHorizontal, Waves, Wind } from 'lucide-react';
-import type { SceneSettings, CharacterColors, Environment, Motion } from '../rig/types';
-import { MOTIONS } from '../rig/types';
+import type { SceneSettings, CharacterColors, TimeOfDay, Motion } from '../rig/types';
+import { MOTIONS, TIMES_OF_DAY } from '../rig/types';
 
 export interface Preset { id: string; name: string; settings: SceneSettings; custom?: boolean }
 export interface ReferenceImage { id: string; name: string; url: string }
@@ -118,7 +118,7 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
         </Section>
 
         <Section title="Street & camera" icon={<Layers size={15} />}>
-          <Segmented label="Environment" options={[{ id: 'day', label: 'Day' }, { id: 'golden', label: 'Golden' }, { id: 'night', label: 'Night' }]} value={settings.environment} onChange={(environment: Environment) => update({ environment })} />
+          <Segmented label="Lighting" options={TIMES_OF_DAY} value={settings.timeOfDay} onChange={(timeOfDay: TimeOfDay) => update({ timeOfDay })} />
           <Slider label="Parallax depth" icon={<MoveHorizontal size={13} />} value={settings.parallax} min={0} max={1} step={0.05} onChange={(parallax) => update({ parallax })} format={(v) => `${Math.round(v * 100)}%`} />
           <Toggle label="Follow camera" icon={<Camera size={14} />} description="Keep Milo centered while the street scrolls" checked={settings.followCamera} onChange={(followCamera) => update({ followCamera })} />
           <Toggle label="Rig guides" icon={<Eye size={14} />} description="Show ground line, joints and IK bones" checked={settings.guides} onChange={(guides) => update({ guides })} />

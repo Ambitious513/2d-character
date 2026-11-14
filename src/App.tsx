@@ -3,7 +3,8 @@ import { Player, type PlayerRef } from '@remotion/player';
 import { ArrowRight, Check, Download, Film, Footprints, Image, Layers, RotateCcw, Save, Shuffle, Sparkles, X } from 'lucide-react';
 import { WalkScene, CharacterOnly } from './remotion/Compositions';
 import { CharacterHead } from './rig/Character';
-import { DEFAULT_SETTINGS, EMOTIONS, PRESETS, type SceneSettings, type ViewMode } from './rig/types';
+import { DEFAULT_SETTINGS, EMOTIONS, type SceneSettings, type ViewMode } from './rig/types';
+import { PRESETS } from './rig/presets';
 import { DURATION, FPS, HEIGHT, WIDTH, motionLabel } from './rig/gait';
 import { Inspector, type Preset, type ReferenceImage } from './ui/Controls';
 import { Timeline } from './ui/Timeline';
@@ -13,7 +14,7 @@ import { ComponentsView, GuideView } from './ui/Views';
 type Nav = 'studio' | 'components' | 'guide';
 type Toast = { msg: string; undo?: () => void } | null;
 
-const BUILT_INS: Preset[] = PRESETS.map((p, i) => ({ id: `builtin-${i}`, name: p.name, settings: p.settings }));
+const BUILT_INS: Preset[] = PRESETS.map((p) => ({ id: p.id, name: p.name, settings: p.settings }));
 
 function loadSettings(): SceneSettings {
   try {
@@ -41,7 +42,7 @@ function BrandMark() {
 export default function App() {
   const [settings, setSettings] = useState<SceneSettings>(loadSettings);
   const [customPresets, setCustomPresets] = useState<Preset[]>(loadCustomPresets);
-  const [activePreset, setActivePreset] = useState('builtin-0');
+  const [activePreset, setActivePreset] = useState(PRESETS[0].id);
   const [nav, setNav] = useState<Nav>('studio');
   const [view, setView] = useState<ViewMode>('scene');
   const [frame, setFrame] = useState(0);
@@ -138,7 +139,7 @@ export default function App() {
     const prev = settings;
     const prevPreset = activePreset;
     setSettings(DEFAULT_SETTINGS);
-    setActivePreset('builtin-0');
+    setActivePreset(PRESETS[0].id);
     notify('Reset to Morning stroll', () => { setSettings(prev); setActivePreset(prevPreset); });
   };
   const randomize = () => {
@@ -148,10 +149,17 @@ export default function App() {
     const skins = ['#B87952', '#8D5A3C', '#E0AC8B', '#6B4226', '#D9A066'];
     const hairs = ['#26352E', '#3B2A20', '#1E1E24', '#5A3A22'];
     update({
-      colors: { jacket: pick(jackets), pants: pick(pants), skin: pick(skins), hair: pick(hairs), shoes: pick(['#F5F0E4', '#FFFDF6', '#E8ECE6']) },
+      colors: {
+        jacket: pick(jackets),
+        pants: pick(pants),
+        skin: pick(skins),
+        hair: pick(hairs),
+        shoes: pick(['#F5F0E4', '#FFFDF6', '#E8ECE6']),
+        accent: pick(['#F6C65B', '#E9B44C', '#7FB6D9', '#FFFDF6']),
+      },
       emotion: pick(EMOTIONS).id,
       motion: pick(['walk', 'walk', 'run', 'wave'] as const),
-      environment: pick(['day', 'golden', 'night'] as const),
+      timeOfDay: pick(['day', 'golden', 'night'] as const),
       speed: 0.7 + Math.random() * 0.7,
       stride: 0.8 + Math.random() * 0.5,
       bounce: 0.4 + Math.random() * 0.6,
@@ -225,7 +233,7 @@ export default function App() {
                     <button className={view === 'scene' ? 'active' : ''} onClick={() => setView('scene')}><Image size={14} />Street scene</button>
                     <button className={view === 'character' ? 'active' : ''} onClick={() => setView('character')}><Footprints size={14} />Character only</button>
                   </div>
-                  <div className="stage-meta"><span className="status-dot" />{motionLabel(settings.motion)}<span className="meta-sep">·</span>{settings.environment}</div>
+                  <div className="stage-meta"><span className="status-dot" />{motionLabel(settings.motion)}<span className="meta-sep">·</span>{settings.timeOfDay}</div>
                 </div>
                 <div className={`player-wrap ${view === 'character' ? 'checkerboard' : ''}`}>
                   <Player

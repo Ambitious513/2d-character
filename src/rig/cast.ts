@@ -257,7 +257,6 @@ export function characterSettings(
     armSwing: p.armSwing ?? 0.8,
     scale: p.scale ?? 1.18,
     direction: 1,
-    colors: { ...def.colors },
     hair: def.hair,
     outfit: def.outfit,
     build: def.build,

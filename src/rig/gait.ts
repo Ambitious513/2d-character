@@ -42,6 +42,12 @@ export interface RigPose {
   bob: number;
   lean: number;
   hip: Point;
+  /**
+   * Actual hip joints the legs are solved from and drawn from. Solving from the
+   * hip centre and drawing from an offset joint (the v1 behaviour) silently
+   * changed the thigh length, which is what made knees jut forward.
+   */
+  hips: [Point, Point];
   shoulder: Point;
   head: Point;
   headTilt: number;
@@ -226,18 +232,24 @@ function speechFor(text: string, rate: number, seed: number): Speech {
   return built;
 }
 
-/** Standing feet, used by every non-locomotion motion. */
+/**
+ * Standing feet, used by every non-locomotion motion.
+ *
+ * The ankles sit almost directly under their own hip joint, so the leg reads as
+ * a straight weight-bearing column with a whisper of knee bend. `spread` widens
+ * the stance for performances that need a base (point, dance).
+ */
 function standingFeet(
-  hip: Point,
+  hips: [Point, Point],
   sk: Skeleton,
   p: Proportions,
   spread = 1,
 ): [FootPose, FootPose] {
-  const far = { x: -17 * spread * p.footScale, y: sk.ankleY };
-  const near = { x: 15 * spread * p.footScale, y: sk.ankleY };
+  const far = { x: hips[0].x - 7 * spread * p.footScale, y: sk.ankleY };
+  const near = { x: hips[1].x + 10 * spread * p.footScale, y: sk.ankleY };
   return [
-    { ankle: far, knee: solveJoint(hip, far, p.thigh, p.shin, 1), angle: 0, contact: true },
-    { ankle: near, knee: solveJoint(hip, near, p.thigh, p.shin, 1), angle: 0, contact: true },
+    { ankle: far, knee: solveJoint(hips[0], far, p.thigh, p.shin, 1), angle: 0, contact: true },
+    { ankle: near, knee: solveJoint(hips[1], near, p.thigh, p.shin, 1), angle: 0, contact: true },
   ];
 }
 
@@ -264,6 +276,15 @@ export function samplePose(
   const bounce = clamp(settings.bounce, 0, 1.5);
   const swing = clamp(settings.armSwing, 0, 1.5);
 
+  // Speech is resolved up front so gestures can react to the same syllable
+  // envelope that drives the mouth — a puppet whose hands ignore its voice
+  // reads as two unrelated animations.
+  const speech = motion === 'talk'
+    ? speechFor(settings.dialogue ?? '', settings.speechRate ?? 1, settings.seed ?? 0)
+    : null;
+  const mouth: VisemeId = speech ? visemeAt(speech, t).id : 'rest';
+  const mouthOpen = speech ? mouthOpenness(speech, t) : 0;
+
   let bob = moving
     ? -(run ? 9 : 4.2) * bounce * unit * (0.5 - 0.5 * Math.cos(phase * Math.PI * 4))
     : Math.sin(t * 2.2 + seedPhase * 6) * 1.25 * bounce * unit;
@@ -278,10 +299,17 @@ export function samplePose(
       ? -4
       : Math.sin(t * 1.3 + seedPhase * 6) * 0.7;
 
-  let hip: Point = { x: 0, y: sk.hipY + bob };
+  // Standing motions rest on the taller hip height so the figure is upright.
+  let hip: Point = { x: 0, y: (moving ? sk.hipY : sk.standHipY) + bob };
   let feet: [FootPose, FootPose];
   let arms: [ArmPose, ArmPose];
 
+  const u = p.torsoLength / 87;
+  /** Hip joints, slightly offset from the pelvis centre, as drawn. */
+  const hipsOf = (h: Point): [Point, Point] => [
+    { x: h.x - 7 * u, y: h.y },
+    { x: h.x + 5 * u, y: h.y },
+  ];
   const shoulderOf = (h: Point, leanX: number): Point => ({
     x: h.x + leanX,
     y: h.y - p.torsoLength,
@@ -290,18 +318,31 @@ export function samplePose(
     x: s.x + 6 * p.headScale,
     y: s.y - p.neckLength + extraY,
   });
+  /**
+   * Shoulder sockets pushed out to the edge of the torso. In v1 they sat at
+   * ±10 from the spine, well inside a 66-wide garment, so both arms were drawn
+   * on top of the chest and the hands disappeared into the silhouette.
+   */
+  const sockets = (s: Point): [Point, Point] => [
+    { x: s.x - p.shoulderWidth * 0.88, y: s.y + 6 * u },
+    { x: s.x + p.shoulderWidth * 0.8, y: s.y + 5 * u },
+  ];
 
   if (moving) {
+    const hips = hipsOf(hip);
     const footLift = (run ? 43 : 23) * (0.65 + bounce * 0.35) * unit;
     feet = [
-      footPose(phase, hip, stepLength, duty, footLift, run, sk, p),
-      footPose((phase + 0.5) % 1, hip, stepLength, duty, footLift, run, sk, p),
+      footPose(phase, hips[0], stepLength, duty, footLift, run, sk, p),
+      footPose((phase + 0.5) % 1, hips[1], stepLength, duty, footLift, run, sk, p),
     ];
-    const angle = Math.sin(phase * Math.PI * 2) * (run ? 37 : 25) * swing;
+    const angle = Math.sin(phase * Math.PI * 2) * (run ? 37 : 29) * swing;
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
+    // The elbow trails the swing: it bends more as the arm comes forward.
+    const bend = run ? 78 : 14;
     arms = [
-      armFK({ x: s.x - 9, y: s.y + 4 }, -angle, run ? 78 : 16, p),
-      armFK({ x: s.x + 12, y: s.y + 4 }, angle, run ? 82 : 12, p),
+      armFK(far, -angle, bend + Math.max(0, -angle) * 0.35, p),
+      armFK(near, angle, bend + Math.max(0, angle) * 0.35, p),
     ];
   } else if (motion === 'jump') {
     const period = 1.25 / clamp(settings.speed, 0.5, 2);
@@ -310,34 +351,36 @@ export function samplePose(
     if (jp < 0.28) {
       crouch = Math.sin(Math.PI * (jp / 0.28)) ** 1.2;
     } else if (jp < 0.72) {
-      const u = (jp - 0.28) / 0.44;
-      air = 4 * u * (1 - u);
+      const u2 = (jp - 0.28) / 0.44;
+      air = 4 * u2 * (1 - u2);
     } else {
-      const u = (jp - 0.72) / 0.28;
-      crouch = Math.sin(Math.PI * u) ** 1.2 * 0.85;
+      const u2 = (jp - 0.72) / 0.28;
+      crouch = Math.sin(Math.PI * u2) ** 1.2 * 0.85;
     }
     const jumpHeight = 78 * bounce * unit;
     const airLift = -jumpHeight * air;
     lift = airLift + 26 * crouch * unit;
     bob = 0;
     lean = 3 + 4 * air;
-    hip = { x: 0, y: sk.hipY + lift };
+    hip = { x: 0, y: sk.standHipY + lift };
+    const hips = hipsOf(hip);
     const tuck = 30 * air * unit;
     const spreadAir = lerp(1, 0.7, air);
-    feet = standingFeet(hip, sk, p, spreadAir).map((f) => {
+    feet = standingFeet(hips, sk, p, spreadAir).map((f, i) => {
       const ankle = { x: f.ankle.x, y: sk.ankleY + airLift - tuck };
       return {
         ankle,
-        knee: solveJoint(hip, ankle, p.thigh, p.shin, 1),
+        knee: solveJoint(hips[i], ankle, p.thigh, p.shin, 1),
         angle: -14 * air,
         contact: air < 0.02,
       };
     }) as [FootPose, FootPose];
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     const armAngle = 10 + 150 * air - 25 * crouch;
     arms = [
-      armFK({ x: s.x - 10, y: s.y + 4 }, armAngle - 6, 18 - 12 * air, p, 'open'),
-      armFK({ x: s.x + 12, y: s.y + 4 }, armAngle, 20 - 14 * air, p, 'open'),
+      armFK(far, armAngle - 6, 18 - 12 * air, p, 'open'),
+      armFK(near, armAngle, 20 - 14 * air, p, 'open'),
     ];
     headTilt = -3 * air + 2 * crouch;
   } else if (motion === 'sit') {
@@ -346,44 +389,50 @@ export function samplePose(
     bob = Math.sin(t * 1.9 + seedPhase * 6) * 0.9 * bounce;
     lean = -2;
     hip = { x: 0, y: -seatHeight - 4 + bob };
-    const mk = (dx: number): FootPose => {
+    const hips = hipsOf(hip);
+    const mk = (i: 0 | 1, dx: number): FootPose => {
       const ankle = { x: p.thigh * dx, y: sk.ankleY };
       return {
         ankle,
-        knee: solveJoint(hip, ankle, p.thigh, p.shin, 1),
+        knee: solveJoint(hips[i], ankle, p.thigh, p.shin, 1),
         angle: 0,
         contact: true,
       };
     };
-    feet = [mk(0.78), mk(0.86)];
+    feet = [mk(0, 0.78), mk(1, 0.86)];
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     arms = [
-      armIK({ x: s.x - 9, y: s.y + 4 }, { x: feet[0].knee.x - 12, y: feet[0].knee.y - 12 }, p, 'relaxed', 70),
-      armIK({ x: s.x + 12, y: s.y + 4 }, { x: feet[1].knee.x - 6, y: feet[1].knee.y - 14 }, p, 'relaxed', 70),
+      armIK(far, { x: feet[0].knee.x - 12, y: feet[0].knee.y - 12 }, p, 'relaxed', 70),
+      armIK(near, { x: feet[1].knee.x - 6, y: feet[1].knee.y - 14 }, p, 'relaxed', 70),
     ];
     headTilt = Math.sin(t * 0.9 + seedPhase * 6) * 1.1;
   } else if (motion === 'point') {
     lean = 3;
-    feet = standingFeet(hip, sk, p);
+    const hips = hipsOf(hip);
+    feet = standingFeet(hips, sk, p, 1.15);
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     const gesture = Math.sin(t * 1.6 + seedPhase * 6) * 5;
     arms = [
-      armFK({ x: s.x - 9, y: s.y + 4 }, -8, 14, p),
-      armFK({ x: s.x + 12, y: s.y + 4 }, 78 + gesture, 4, p, 'point'),
+      armFK(far, -8, 14, p),
+      armFK(near, 84 + gesture, 4, p, 'point'),
     ];
     headTilt = -2 + gesture * 0.15;
   } else if (motion === 'think') {
     lean = -1;
-    feet = standingFeet(hip, sk, p, 0.92);
+    const hips = hipsOf(hip);
+    feet = standingFeet(hips, sk, p, 0.95);
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     const h = headOf(s);
     const stroking = Math.sin(t * 1.7 + seedPhase * 6) * 2.2;
     arms = [
-      // Far arm folded across the waist, supporting the near elbow.
-      armIK({ x: s.x - 9, y: s.y + 4 }, { x: s.x + 16, y: s.y + p.torsoLength * 0.52 }, p, 'relaxed', 80),
+      // Far arm folded across the waist, propping up the near elbow.
+      armIK(far, { x: s.x + 14, y: s.y + p.torsoLength * 0.5 }, p, 'relaxed', 80),
       armIK(
-        { x: s.x + 12, y: s.y + 4 },
-        { x: h.x + 19 * p.headScale, y: h.y + 37 * p.headScale + stroking },
+        near,
+        { x: h.x + 16 * p.headScale, y: h.y + 40 * p.headScale + stroking },
         p,
         'fist',
         -20,
@@ -396,54 +445,70 @@ export function samplePose(
     const w = dp * Math.PI * 2;
     bob = -Math.abs(Math.sin(w)) * 9 * bounce * unit;
     lean = Math.sin(w) * 6;
-    hip = { x: Math.sin(w) * 9 * unit, y: sk.hipY + bob };
+    hip = { x: Math.sin(w) * 9 * unit, y: sk.standHipY + bob };
+    const hips = hipsOf(hip);
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     const liftL = Math.max(0, Math.sin(w)) * 12 * unit;
     const liftR = Math.max(0, -Math.sin(w)) * 12 * unit;
-    feet = [
-      { ankle: { x: -18 * p.footScale, y: sk.ankleY - liftL }, knee: solveJoint(hip, { x: -18 * p.footScale, y: sk.ankleY - liftL }, p.thigh, p.shin, 1), angle: -8 * (liftL > 1 ? 1 : 0), contact: liftL < 1 },
-      { ankle: { x: 16 * p.footScale, y: sk.ankleY - liftR }, knee: solveJoint(hip, { x: 16 * p.footScale, y: sk.ankleY - liftR }, p.thigh, p.shin, 1), angle: -8 * (liftR > 1 ? 1 : 0), contact: liftR < 1 },
-    ];
+    const mk = (i: 0 | 1, dx: number, up: number): FootPose => {
+      const ankle = { x: hips[i].x + dx * p.footScale, y: sk.ankleY - up };
+      return {
+        ankle,
+        knee: solveJoint(hips[i], ankle, p.thigh, p.shin, 1),
+        angle: -8 * (up > 1 ? 1 : 0),
+        contact: up < 1,
+      };
+    };
+    feet = [mk(0, -5, liftL), mk(1, 7, liftR)];
     arms = [
-      armFK({ x: s.x - 10, y: s.y + 4 }, 120 + Math.sin(w) * 40 * swing, 34, p, 'open'),
-      armFK({ x: s.x + 12, y: s.y + 4 }, 120 - Math.sin(w) * 40 * swing, 30, p, 'open'),
+      armFK(far, 120 + Math.sin(w) * 40 * swing, 34, p, 'open'),
+      armFK(near, 120 - Math.sin(w) * 40 * swing, 30, p, 'open'),
     ];
     headTilt = Math.sin(w) * 4;
   } else {
     // idle / wave / talk share a breathing stand.
-    feet = standingFeet(hip, sk, p);
+    const hips = hipsOf(hip);
+    feet = standingFeet(hips, sk, p);
     const s = shoulderOf(hip, lean);
+    const [far, near] = sockets(s);
     if (motion === 'wave') {
+      // Upper arm out to the side, forearm raised, hand oscillating. The hand
+      // stays clear of the face — waving across your own cheek reads as a
+      // salute, which is what v1 did.
       const wave = Math.sin(t * 7.5 + seedPhase * 6) * 13;
       arms = [
-        armFK({ x: s.x - 9, y: s.y + 4 }, -6, 14, p),
-        {
-          shoulder: { x: s.x + 12, y: s.y + 4 },
-          elbow: { x: s.x + 12 + p.upperArm * 0.83, y: s.y - p.upperArm * 0.27 },
-          wrist: { x: s.x + 12 + p.upperArm * 1.02 + wave, y: s.y - p.upperArm * 1.29 },
-          hand: 'open',
-          handAngle: -12,
-        },
+        armFK(far, -6, 14, p),
+        armFK(near, 100 + wave * 0.25, 60 + wave, p, 'open'),
       ];
+      headTilt = -5 + wave * 0.08;
     } else if (motion === 'talk') {
+      // One hand leads the line, the other stays low and quiet. Emphasis rides
+      // the syllable envelope so the gesture lands on the words.
       const g = t * 2.1 + seedPhase * 6;
+      const emphasis = 0.45 + 0.55 * mouthOpen;
       arms = [
-        armFK({ x: s.x - 9, y: s.y + 4 }, 12 + Math.sin(g + 1.1) * 12 * swing, 34 + Math.sin(g) * 10, p),
-        armFK({ x: s.x + 12, y: s.y + 4 }, 20 + Math.sin(g) * 16 * swing, 42 + Math.sin(g + 0.7) * 12, p, 'open'),
+        armFK(far, 6 + Math.sin(g + 1.1) * 5 * swing, 22, p),
+        armFK(
+          near,
+          34 + Math.sin(g) * 14 * swing * emphasis,
+          54 + Math.sin(g + 0.7) * 16 * emphasis,
+          p,
+          'open',
+        ),
       ];
+      headTilt = Math.sin(g * 0.6) * 1.6 - mouthOpen * 1.2;
     } else {
       const drift = Math.sin(t * 1.1 + seedPhase * 6) * 2.2;
       arms = [
-        armFK({ x: s.x - 9, y: s.y + 4 }, -4 + drift, 12, p),
-        armFK({ x: s.x + 12, y: s.y + 4 }, 5 + drift, 10, p),
+        armFK(far, -4 + drift, 12, p),
+        armFK(near, 5 + drift, 10, p),
       ];
     }
   }
 
+  const hips = hipsOf(hip);
   const shoulder = shoulderOf(hip, lean);
-  const speech = motion === 'talk' ? speechFor(settings.dialogue ?? '', settings.speechRate ?? 1, settings.seed ?? 0) : null;
-  const mouth: VisemeId = speech ? visemeAt(speech, t).id : 'rest';
-  const mouthOpen = speech ? mouthOpenness(speech, t) : 0;
   // Small nod on syllable peaks makes talking read as speech, not a puppet.
   const talkNod = speech ? mouthOpen * 1.6 : 0;
   const head = headOf(shoulder, (moving ? Math.sin(phase * Math.PI * 4 + 0.5) * 1.1 * bounce : 0) - talkNod);
@@ -457,6 +522,7 @@ export function samplePose(
     bob,
     lean,
     hip,
+    hips,
     shoulder,
     head,
     headTilt,

@@ -30,6 +30,12 @@ export type Emotion =
 /** Lighting pass applied to any environment. */
 export type TimeOfDay = 'day' | 'golden' | 'night';
 
+/**
+ * @deprecated Renamed to {@link TimeOfDay} in v2. Kept as an alias so v1 code
+ * and presets keep compiling.
+ */
+export type Environment = TimeOfDay;
+
 /** Which environment is drawn behind the character. */
 export type SceneId = 'street' | 'park' | 'room' | 'backdrop';
 
