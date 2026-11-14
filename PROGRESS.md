@@ -3,18 +3,20 @@
 **Read this first if you are picking this project up.** It records what state the
 repo is in, what was just done, and exactly where to continue.
 
-- **Last updated:** 2026-11-14
+- **Last updated:** 2026-11-15
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — Phase 5 pushed (`d2e8376`) and **CI run #9 fully green**,
-  including the new `render-smoke` job: typecheck clean, **81/81 tests pass**,
-  build succeeds, `check:ids` 6/6 unique, `check:env-ids` all unique, visual
-  goldens byte-stable, kit ZIP regenerated from the current tree, and a real
-  Remotion render of 10 PNG frames on `ubuntu-latest`.
+- **State:** ✅ green — Phase 5's four named deliverables are pushed and
+  **CI run #9 fully green**, including `render-smoke`: typecheck clean,
+  **81/81 tests pass**, build succeeds, `check:ids` 6/6 unique,
+  `check:env-ids` all unique, visual goldens byte-stable, kit ZIP regenerated
+  from the current tree, and a real Remotion render of 10 PNG frames on
+  `ubuntu-latest`.
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
-  handoff update → `73cce7b` CI fix → **`d2e8376` Phase 5 (2026-11-14, CI run
-  43636701309 green)**. GitHub serves real source; the tarballs are gone.
+  handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 (CI run 43636701309
+  green) → `582a57d` render-smoke handoff record → **docs truth-up (this
+  commit)**. GitHub serves real source; the tarballs are gone.
 
 > ## ✅ Push access resolved (2026-11-15)
 >
@@ -47,20 +49,41 @@ repo is in, what was just done, and exactly where to continue.
 
 ## TL;DR for the next agent
 
-The previous agents' work was **never committed as source** — it was dumped into
-tarballs at the repo root (`latest.gz`, then `latest main.tar.gz`). That work has
-now been **recovered, unpacked into real source files, verified, structured and
-documented**. Phase 4 is complete. The repo root no longer contains any tarball.
+The repo is **no longer in the tarball-recovery state**. Real source is on
+GitHub, Phase 4 is complete, and Phase 5's four named deliverables are complete
+and CI-verified: visual-regression snapshots, the `render-smoke` CI job, the
+fresh kit ZIP, and keyboard-first studio UX. The current suite is **81 tests**,
+including **48 visual golden hashes**.
 
-It is **pushed** — `origin/main` is `6d32d3f`. Nothing is half-finished and there
-is no broken code to repair.
+Do **not** redo those Phase 5 items. The remaining roadmap work is:
 
-**Phase 5 is underway.** Visual snapshots, the CI render job, the kit ZIP and
-keyboard shortcuts are done and verified locally — details below.
+1. **Docs site** with live `<Player>` examples.
+2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
+
+Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
+drop the v1 compatibility shims. See "Open decisions" below.
 
 ---
 
-## What this session did (2026-11-14) — Phase 5
+## What this session did (2026-11-15) — docs truth-up
+
+Documentation-only reconciliation so the handoff matches the repo and CI:
+
+- `PROGRESS.md`: removed stale "Phase 5 is underway" / old `origin/main`
+  language from the current-state sections; updated the current test count to
+  81; clarified that CI verifies a **PNG sequence** render, while actual
+  ProRes/WebM file production remains unverified.
+- `docs/ROADMAP.md`: Phase 5 is no longer marked as simply "next"; studio
+  polish, visual snapshots, CI render smoke and the kit ZIP are marked done,
+  with docs site and weather still open.
+- `docs/ARCHITECTURE.md`: test table now includes the visual and kit-ZIP suites
+  and totals **81**, not 78.
+- Refreshed `public/stride-remotion-kit.zip` so the downloadable kit carries the
+  corrected docs. No application code, tests, or CI workflow were changed.
+
+---
+
+## Phase 5 deliverables (2026-11-14)
 
 All four Phase 5 tasks, verified with `npm run verify` (typecheck + **81/81**
 tests + build), `npm run check:ids` (6/6 unique) and `npm run check:env-ids`
@@ -83,7 +106,7 @@ tests + build), `npm run check:ids` (6/6 unique) and `npm run check:env-ids`
 
 - `scripts/generate-kit-zip.ts` (`npm run kit:zip`) zips the **current working
   tree** (git-tracked + untracked-but-not-ignored, so new files are included)
-  into a deterministic archive (sorted paths, fixed mtime). 69 files, ~190 KB.
+  into a deterministic archive (sorted paths, fixed mtime).
 - The old ZIP was a v1.0.0 pre-restructure snapshot; it now contains
   `src/index.ts`, `src/rig/id.ts`, the environments, tests and docs at 2.2.0.
 - `tests/kit-zip.test.ts` opens the archive and asserts `package.json` matches
@@ -132,7 +155,7 @@ factories, barrel). It ran out of usage **mid-way through checking Remotion CLI
 flags for the export docs**, so none of it was committed. `latest.gz` was the only
 record.
 
-## What this session did (2026-11-15) — arrangement
+## Arrangement session (2026-11-15) — historical
 
 The 2026-11-14 session finished the work but could not push, so it was uploaded to
 GitHub as **`latest main.tar.gz`** (commit `d3ae613`, 3.9 MB at the repo root).
@@ -167,14 +190,17 @@ it and arranged it properly.
 
 ```
 npm install && npx tsc -b        # clean
-npm test                         # 78/78 pass, 0 fail
+npm test                         # 78/78 pass, 0 fail (historical count)
 npm run build                    # ✓ built
 npm run check:ids                # 6 of 6 unique gradient ids — no collision
 npm run check:env-ids            # street 3/3, park 6/6, room 6/6, backdrop 6/6
 npm ci --dry-run                 # clean — lockfile in sync
 ```
 
-Rendering is still unverified here for the same 1 GB RAM reason documented below.
+This was the arrangement-time verification: **78 tests** then, before the
+visual-golden and kit-ZIP suites brought the current total to **81**. Rendering
+was unverified locally at that point; CI `render-smoke` later verified the PNG
+sequence render (see "Verified state" below).
 
 ### Fixed the red CI (pre-existing, not caused by the arrangement)
 
@@ -274,8 +300,13 @@ The repo had **no root README** and no architecture doc.
 
 ```bash
 npm install
-npm run verify      # typecheck + 78 tests + build — ALL GREEN
+npm run verify      # typecheck + 81 tests + build — ALL GREEN
 ```
+
+CI run [#9 / 43636701309](https://github.com/Ambitious513/2d-character/actions/runs/43636701309)
+on `d2e8376` completed successfully: `verify`, `browser-smoke`, and
+`render-smoke`. The render job produced exactly 10 PNG frames of
+`CharacterOnly` on `ubuntu-latest`.
 
 | Suite | Tests | Guards |
 | --- | --- | --- |
@@ -288,15 +319,18 @@ npm run verify      # typecheck + 78 tests + build — ALL GREEN
 | `tests/kit-zip.test.ts` | 1 | the downloadable ZIP is the current source tree |
 | **total** | **81** | |
 
-### ⚠️ What could NOT be verified here
+### ⚠️ What remains unverified
 
-**Actual video rendering.** The sandbox is capped at **1 GB RAM**; Remotion's
-webpack bundle plus headless Chrome gets OOM-killed at ~100% bundling. Tried
+**Actual ProRes/WebM video rendering.** CI `render-smoke` verifies a 10-frame
+**PNG sequence**, not a finished `.mov` or `.webm`. The export recipes are
+verified at the flag/validation level (against Remotion's own validator
+functions), but **no `.mov`/`.webm` has actually been produced**.
+
+The original local sandbox was capped at **1 GB RAM**; Remotion's webpack
+bundle plus headless Chrome was OOM-killed at ~100% bundling. Tried
 `--concurrency=1` and `NODE_OPTIONS=--max-old-space-size=512/640` — still killed.
-This is an **environment limit, not a code defect**.
+That was an **environment limit, not a code defect**.
 
-So the export recipes are verified at the flag/validation level (against
-Remotion's own validator functions) but **no `.mov`/`.webm` was actually produced**.
 If you have ≥4 GB RAM, please run:
 
 ```bash
@@ -339,9 +373,9 @@ byte-stable) in `<svg>` — leave the fragment-contract assertion alone.
 
 ---
 
-## Where to continue — Phase 5
+## Where to continue
 
-Status after the 2026-11-14 session (details in the Phase 5 section above):
+Current status after Phase 5 and the 2026-11-15 docs truth-up:
 
 1. ~~**Visual-regression snapshots.**~~ **Done** — `tests/visual.test.tsx` +
    `tests/visual-goldens.tsx` + `tests/__golden__/visual-hashes.json`
@@ -355,6 +389,9 @@ Status after the 2026-11-14 session (details in the Phase 5 section above):
    it.
 4. ~~**Keyboard-first studio UX.**~~ **Done** — `useStudioHotkeys` in
    `src/ui/Controls.tsx`, wired in `src/App.tsx`.
+
+Documentation truth-up (2026-11-15): **done** — `PROGRESS.md`,
+`docs/ROADMAP.md` and `docs/ARCHITECTURE.md` reconciled with the current repo.
 
 Still open, in recommended order:
 

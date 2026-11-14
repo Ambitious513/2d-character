@@ -146,9 +146,13 @@ asserts the barrel does not leak it.
 | `svg-ids.test.tsx` | 14 | gradient-id collisions across React roots |
 | `packaging.test.tsx` | 28 | public barrel, preset envelope + v1 migration, factories |
 | `export-recipes.test.ts` | 6 | alpha recipes stay valid (PNG frames, 4444 profile) |
-| **total** | **78** | |
+| `visual.test.tsx` | 2 | 48 golden hashes (cast × motion × emotion, scene × lighting) |
+| `kit-zip.test.ts` | 1 | downloadable ZIP matches the current source tree |
+| **total** | **81** | |
 
-Run `npm run verify` (typecheck + tests + build) before every commit.
+Run `npm run verify` (typecheck + tests + build) before every commit. CI also
+runs the studio browser smoke test and `render-smoke` (10 PNG frames of
+`CharacterOnly`).
 
 ---
 

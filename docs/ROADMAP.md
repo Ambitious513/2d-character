@@ -10,7 +10,7 @@ own.
 | 2 | Cast & wardrobe depth | ✅ done |
 | 3 | Environment library | ✅ done (weather deferred) |
 | 4 | Remotion packaging & presets | ✅ done (npm publish open) |
-| 5 | Studio polish, docs site & CI | 🔜 next |
+| 5 | Studio polish, docs site & CI | 🟡 mostly done — docs site & weather open |
 
 > This file was deleted in commit `e301ed1` and restored from `629708d` during the
 > recovery pass. Statuses above reflect the code as it actually stands, not the
@@ -86,15 +86,30 @@ camera.
 `private: true` with no library build / `exports` map. Copy-in consumption works
 today. See `PROGRESS.md` → "Open decisions".
 
-## Phase 5 — Studio polish, docs site & CI 🔜
+## Phase 5 — Studio polish, docs site & CI 🟡
 
-- Keyboard-first studio UX (shortcuts for motion/emotion cycling, frame stepping).
-- Docs site with live `<Player>` examples.
-- **Visual regression snapshots** — none exist yet. The rig is byte-deterministic,
-  so `renderToStaticMarkup` snapshots are cheap and would catch drawing
-  regressions that unit tests miss.
-- CI matrix that renders a short clip on every PR (needs a runner with enough
-  RAM for headless Chrome — see the memory note in `PROGRESS.md`).
-- Weather controls, if still wanted.
-- Refresh `public/stride-remotion-kit.zip` — the studio's "Download project ZIP"
-  button still serves a stale pre-restructure snapshot.
+Done and CI-verified:
+
+- **Keyboard-first studio UX** — `useStudioHotkeys` in `src/ui/Controls.tsx`,
+  wired into `src/App.tsx`: frame stepping, play/pause, cast selection,
+  walk/idle/run shortcuts.
+- **Visual regression snapshots** — `tests/visual-goldens.tsx`,
+  `tests/visual.test.tsx`, and `tests/__golden__/visual-hashes.json`
+  (48 SHA-256 entries). Regenerate intentional visual changes with
+  `npm run update:visual-goldens`.
+- **CI render smoke** — `.github/workflows/ci.yml` has `render-smoke`
+  (`needs: verify`), rendering `CharacterOnly` frames 0–9 as a PNG sequence and
+  asserting exactly 10 files. First green run: CI #9 / 43636701309. This verifies
+  PNG-sequence rendering, not actual ProRes/WebM file production.
+- **Fresh kit ZIP** — `public/stride-remotion-kit.zip` is generated from the
+  current tree by `npm run kit:zip` and guarded by `tests/kit-zip.test.ts`.
+  Rerun it after source or packaged-doc changes.
+
+Still open:
+
+- **Docs site** with live `<Player>` examples.
+- **Weather controls** (`rain` / `snow` / `fog`) — deferred from Phase 3; no
+  `weather` field exists yet.
+
+Phase 5 is not fully closed until the docs site lands; weather can be treated as
+Phase 5.1 / Phase 3.1 if the owner wants it next.
