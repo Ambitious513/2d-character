@@ -33,7 +33,7 @@ await page.locator('input[aria-label="Speed"]').fill('1.5');
 await page.getByRole('switch', { name: 'Rig guides' }).click();
 await page.waitForSelector('[data-rig-guides="true"]');
 await page.getByRole('button', { name: 'Night', exact: true }).click();
-await page.waitForSelector('[data-street="night"]');
+await page.waitForSelector('[data-scene="street"][data-time-of-day="night"]');
 await page.getByRole('button', { name: '← Left' }).click();
 await page.waitForSelector('[data-character="milo"][transform="scale(-1 1)"]');
 await page.getByRole('button', { name: 'Run', exact: true }).click();
@@ -42,7 +42,7 @@ if (!(await page.locator('.stage-meta').textContent()).includes('Run cycle')) er
 await page.getByRole('button', { name: 'Character only' }).click();
 await page.waitForSelector('.checkerboard [data-character="milo"]');
 await page.screenshot({ path: 'screenshots/character-only.png', fullPage: true });
-await page.getByRole('button', { name: 'Street scene' }).click();
+await page.getByRole('button', { name: 'Street', exact: true }).click();
 
 // Reference overlay
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
@@ -93,7 +93,7 @@ await mobile.waitForTimeout(400);
 const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 if (overflow > 1) errors.push(`mobile horizontal overflow ${overflow}px`);
 await mobile.screenshot({ path: 'screenshots/mobile-studio.png', fullPage: true });
-await mobile.getByRole('button', { name: 'Happy', exact: true }).click();
+await mobile.getByRole('button', { name: /Happy/ }).click();
 await mobile.waitForSelector('[data-face="happy"]');
 await mobile.locator('.inspector').scrollIntoViewIfNeeded();
 await mobile.screenshot({ path: 'screenshots/mobile-inspector.png', fullPage: true });

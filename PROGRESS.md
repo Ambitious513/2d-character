@@ -7,8 +7,9 @@ repo is in, what was just done, and exactly where to continue.
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — re-verified 2026-11-15 from a clean clone: typecheck clean,
-  **78/78 tests pass**, production build succeeds, `check:ids` 6/6 unique
+- **State:** ✅ green — re-verified 2026-11-15 from a clean clone of GitHub:
+  typecheck clean, **78/78 tests pass**, build succeeds, `check:ids` 6/6 unique,
+  **browser smoke test passes** (desktop + mobile)
 - **Commit:** `6d32d3f` — **pushed to `origin/main` on 2026-11-15.** GitHub now
   serves real source; the tarballs are gone from the working tree.
 
@@ -118,11 +119,36 @@ npm ci --dry-run                 # clean — lockfile in sync
 
 Rendering is still unverified here for the same 1 GB RAM reason documented below.
 
+### Fixed the red CI (pre-existing, not caused by the arrangement)
+
+`CI` had been **failing on every commit since `e301ed1`** — including the two
+tarball commits. The `Typecheck, test, build` job always passed; the
+`Studio browser smoke test` job was the failure. Three selectors in
+`scripts/smoke.mjs` had gone stale in the environments/UI refactor and were never
+updated:
+
+| Stale | Reality | Fix |
+| --- | --- | --- |
+| `[data-street="night"]` | nothing emits `data-street`; scenes emit `data-scene` + `data-time-of-day` | `[data-scene="street"][data-time-of-day="night"]` |
+| button `'Street scene'` | the Scene segmented control renders `Street` / `Park` / `Room` / `Backdrop` | `'Street', exact: true` |
+| mobile button `'Happy', exact: true` | accessible name is `HappyA little extra joy` (label + description) | `/Happy/` |
+
+The first one masked the other two — CI always died at line 36, so the later
+steps had never run. **Verified by actually running it**, not by inspection:
+installed Chromium, ran the studio, `npm run smoke` →
+`Smoke test passed: desktop + mobile, playback, controls, reference overlay,
+presets, export, secondary views.` with zero console/page errors.
+
+Only test selectors changed — no application code was touched, and no assertion
+was weakened or skipped.
+
 ### Pushed
 
-`git push origin main` → `d3ae613..6d32d3f`. Remote tree re-read through the
-GitHub API to confirm the arrangement landed (no tarballs, no `uploads/`,
-`PROGRESS.md` and `src/rig/id.ts` present, version `2.2.0`).
+`git push origin main` → `d3ae613..6d32d3f`, then the PROGRESS update and the CI
+fix. Remote tree re-read through the GitHub API to confirm the arrangement landed
+(no tarballs, no `uploads/`, `PROGRESS.md` and `src/rig/id.ts` present, version
+`2.2.0`). A **fresh clone from GitHub** was then installed and verified
+independently: 78/78 tests, build, `check:ids` 6/6.
 
 ---
 
@@ -259,8 +285,9 @@ In recommended order:
    `tests/visual.test.tsx` covering each cast member × motion × emotion at a few
    fixed frames, plus each scene × lighting pass. Store hashes or golden SVG under
    `tests/__golden__/`. **This is the natural next step and unblocks safe refactor.**
-2. **CI render job.** `.github/workflows/ci.yml` currently runs typecheck/test/build
-   plus a Playwright studio smoke test. Add a short alpha render on PR (GitHub
+2. **CI render job.** `.github/workflows/ci.yml` runs typecheck/test/build plus a
+   Playwright studio smoke test — **both jobs green as of 2026-11-15** (the smoke
+   selectors were repaired this session). Add a short alpha render on PR (GitHub
    runners have ~7 GB, so the memory problem above does not apply). Assert the
    output exists and has alpha.
 3. **Refresh `public/stride-remotion-kit.zip`.** The studio's "Download project ZIP"
