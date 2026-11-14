@@ -104,12 +104,6 @@ export interface Skeleton {
   /** Resting ankle height above the ground. */
   ankleY: number;
   hipY: number;
-  /**
-   * Hip height for standing poses. Locomotion keeps the hip lower (`hipY`) so
-   * the legs have travel left to reach the ends of a stride; a standing figure
-   * has no such requirement and should read as upright, not mid-stride.
-   */
-  standHipY: number;
   shoulderY: number;
   headY: number;
   /** Total drawn height, ground to top of the hair. Useful for framing. */
@@ -121,22 +115,17 @@ export interface Skeleton {
 }
 
 /**
- * The 0.94 factor keeps a soft bend in the knee during locomotion — legs are
- * never drawn perfectly straight, which reads as more organic than a locked
- * joint. Standing uses 0.996: enough to avoid a hyperextended lock, shallow
- * enough that the knee does not jut forward.
+ * The 0.94 factor keeps a soft bend in the knee at rest — legs are never drawn
+ * perfectly straight, which reads as more organic than a locked joint.
  */
 export function skeletonOf(p: Proportions): Skeleton {
   const ankleY = -13 * p.footScale;
-  const legLength = p.thigh + p.shin;
-  const hipY = ankleY - legLength * 0.94;
-  const standHipY = ankleY - legLength * 0.996;
+  const hipY = ankleY - (p.thigh + p.shin) * 0.94;
   const shoulderY = hipY - p.torsoLength;
   const headY = shoulderY - p.neckLength;
   return {
     ankleY,
     hipY,
-    standHipY,
     shoulderY,
     headY,
     height: Math.abs(headY) + 78 * p.headScale,

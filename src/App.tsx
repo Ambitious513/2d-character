@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
-import { ArrowRight, Check, Download, Film, Footprints, Image, Layers, RotateCcw, Save, Shuffle, Sparkles, X } from 'lucide-react';
-import { WalkScene, CharacterOnly } from './remotion/Compositions';
+import { Activity, ArrowRight, Check, Download, Film, Footprints, Image, Layers, RotateCcw, Save, Shuffle, Sparkles, Users, X } from 'lucide-react';
+import { WalkScene, CharacterOnly, CastSheet, MotionSheet } from './remotion/Compositions';
 import { CharacterHead } from './rig/Character';
-import { DEFAULT_SETTINGS, EMOTIONS, type SceneSettings, type ViewMode } from './rig/types';
+import { DEFAULT_SETTINGS, EMOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY, type SceneSettings, type ViewMode } from './rig/types';
 import { PRESETS } from './rig/presets';
+import { castSceneSettings, getCharacter, listCharacters } from './rig/cast';
 import { DURATION, FPS, HEIGHT, WIDTH, motionLabel } from './rig/gait';
 import { Inspector, type Preset, type ReferenceImage } from './ui/Controls';
 import { Timeline } from './ui/Timeline';
@@ -14,7 +15,15 @@ import { ComponentsView, GuideView } from './ui/Views';
 type Nav = 'studio' | 'components' | 'guide';
 type Toast = { msg: string; undo?: () => void } | null;
 
-const BUILT_INS: Preset[] = PRESETS.map((p) => ({ id: p.id, name: p.name, settings: p.settings }));
+const BUILT_INS: Preset[] = PRESETS.map((p, i) => ({ id: `builtin-${i}`, name: p.name, settings: p.settings }));
+
+const STAGE: Record<ViewMode, { label: string; width: number; height: number }> = {
+  scene: { label: 'Scene', width: WIDTH, height: HEIGHT },
+  character: { label: 'Character only', width: 720, height: 720 },
+  cast: { label: 'Cast sheet', width: WIDTH, height: HEIGHT },
+  motion: { label: 'Motion sheet', width: WIDTH, height: HEIGHT },
+  reference: { label: 'Reference', width: WIDTH, height: HEIGHT },
+};
 
 function loadSettings(): SceneSettings {
   try {
@@ -42,7 +51,7 @@ function BrandMark() {
 export default function App() {
   const [settings, setSettings] = useState<SceneSettings>(loadSettings);
   const [customPresets, setCustomPresets] = useState<Preset[]>(loadCustomPresets);
-  const [activePreset, setActivePreset] = useState(PRESETS[0].id);
+  const [activePreset, setActivePreset] = useState('builtin-0');
   const [nav, setNav] = useState<Nav>('studio');
   const [view, setView] = useState<ViewMode>('scene');
   const [frame, setFrame] = useState(0);
@@ -139,34 +148,51 @@ export default function App() {
     const prev = settings;
     const prevPreset = activePreset;
     setSettings(DEFAULT_SETTINGS);
-    setActivePreset(PRESETS[0].id);
+    setActivePreset('builtin-0');
     notify('Reset to Morning stroll', () => { setSettings(prev); setActivePreset(prevPreset); });
   };
   const randomize = () => {
-    const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
+    const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];
     const jackets = ['#F26B38', '#365DE6', '#E9B44C', '#7FB6D9', '#D9552F', '#6F9B6A'];
     const pants = ['#2D5B52', '#233C59', '#6B5147', '#3E4C55'];
     const skins = ['#B87952', '#8D5A3C', '#E0AC8B', '#6B4226', '#D9A066'];
     const hairs = ['#26352E', '#3B2A20', '#1E1E24', '#5A3A22'];
+    const accents = ['#F6C65B', '#FFFDF6', '#7FB6D9', '#E9B44C'];
     update({
-      colors: {
-        jacket: pick(jackets),
-        pants: pick(pants),
-        skin: pick(skins),
-        hair: pick(hairs),
-        shoes: pick(['#F5F0E4', '#FFFDF6', '#E8ECE6']),
-        accent: pick(['#F6C65B', '#E9B44C', '#7FB6D9', '#FFFDF6']),
-      },
+      colors: { jacket: pick(jackets), pants: pick(pants), skin: pick(skins), hair: pick(hairs), shoes: pick(['#F5F0E4', '#FFFDF6', '#E8ECE6']), accent: pick(accents) },
       emotion: pick(EMOTIONS).id,
-      motion: pick(['walk', 'walk', 'run', 'wave'] as const),
-      timeOfDay: pick(['day', 'golden', 'night'] as const),
+      motion: pick(['walk', 'walk', 'run', 'wave', 'dance', 'talk'] as const),
+      hair: pick(HAIR_STYLES).id,
+      outfit: pick(OUTFITS).id,
+      build: pick(BUILDS).id,
+      scene: pick(SCENES).id,
+      timeOfDay: pick(TIMES_OF_DAY).id,
       speed: 0.7 + Math.random() * 0.7,
       stride: 0.8 + Math.random() * 0.5,
       bounce: 0.4 + Math.random() * 0.6,
       armSwing: 0.5 + Math.random() * 0.7,
       glasses: Math.random() > 0.65,
+      cap: Math.random() > 0.8,
+      scarf: Math.random() > 0.85,
+      freckles: Math.random() > 0.7,
     });
     notify('New look rolled');
+  };
+
+  /** Switch cast member, keeping the current scene, camera and framing. */
+  const applyCharacter = (id: string) => {
+    const next = castSceneSettings(id, {
+      scene: settings.scene,
+      timeOfDay: settings.timeOfDay,
+      parallax: settings.parallax,
+      followCamera: settings.followCamera,
+      guides: settings.guides,
+      showSubtitles: settings.showSubtitles,
+      direction: settings.direction,
+    });
+    setSettings(next);
+    setActivePreset('custom');
+    notify(`Switched to ${getCharacter(id).name}`);
   };
 
   const uploadReferences = (files: FileList | null) => {
@@ -190,9 +216,10 @@ export default function App() {
   };
 
   const activeRef = references[activeReference];
-  const composition = view === 'scene' ? WalkScene : CharacterOnly;
-  const compWidth = view === 'scene' ? WIDTH : 720;
-  const compHeight = view === 'scene' ? HEIGHT : 720;
+  const composition = view === 'character' ? CharacterOnly : view === 'cast' ? CastSheet : view === 'motion' ? MotionSheet : WalkScene;
+  const compWidth = STAGE[view].width;
+  const compHeight = STAGE[view].height;
+  const castMember = getCharacter(settings.character);
 
   return (
     <div className="app">
@@ -214,9 +241,9 @@ export default function App() {
         <>
           <div className="project-bar">
             <div className="project-title">
-              <span className="eyebrow">CHARACTER 001 · ORIGINAL VECTOR RIG</span>
-              <h1>Milo, in motion<span>.</span></h1>
-              <p>A little personality for every frame. Walk, run, wave — and make it yours.</p>
+              <span className="eyebrow">CAST {String(listCharacters().findIndex((c) => c.id === castMember.id) + 1).padStart(3, '0')} · {castMember.build.toUpperCase()} BUILD · ORIGINAL VECTOR RIG</span>
+              <h1>{castMember.name}, in motion<span>.</span></h1>
+              <p>{castMember.tagline}</p>
             </div>
             <div className="project-actions">
               <div className="spec-chips"><span><Footprints size={13} />IK gait</span><span>30 fps</span><span>1280 × 720</span></div>
@@ -230,10 +257,12 @@ export default function App() {
               <div className="stage-card">
                 <div className="stage-toolbar">
                   <div className="stage-tabs" role="group" aria-label="Preview mode">
-                    <button className={view === 'scene' ? 'active' : ''} onClick={() => setView('scene')}><Image size={14} />Street scene</button>
+                    <button className={view === 'scene' ? 'active' : ''} onClick={() => setView('scene')}><Image size={14} />Scene</button>
                     <button className={view === 'character' ? 'active' : ''} onClick={() => setView('character')}><Footprints size={14} />Character only</button>
+                    <button className={view === 'cast' ? 'active' : ''} onClick={() => setView('cast')}><Users size={14} />Cast sheet</button>
+                    <button className={view === 'motion' ? 'active' : ''} onClick={() => setView('motion')}><Activity size={14} />Motion sheet</button>
                   </div>
-                  <div className="stage-meta"><span className="status-dot" />{motionLabel(settings.motion)}<span className="meta-sep">·</span>{settings.timeOfDay}</div>
+                  <div className="stage-meta"><span className="status-dot" />{motionLabel(settings.motion)}<span className="meta-sep">·</span>{settings.scene} / {settings.timeOfDay}</div>
                 </div>
                 <div className={`player-wrap ${view === 'character' ? 'checkerboard' : ''}`}>
                   <Player
@@ -255,7 +284,7 @@ export default function App() {
                     errorFallback={({ error }) => <div className="player-error">Preview error: {error.message}</div>}
                   />
                   {showReference && activeRef && <img className="reference-overlay" src={activeRef.url} alt="Reference overlay" style={{ opacity: referenceOpacity }} />}
-                  <div className="stage-corner-label">{view === 'scene' ? 'SIDEWALK / 01' : 'ALPHA / RIG'}<span>{settings.direction === 1 ? '→' : '←'}</span></div>
+                  <div className="stage-corner-label">{view === 'scene' ? `${settings.scene.toUpperCase()} / 01` : view === 'character' ? 'ALPHA / RIG' : view === 'cast' ? 'CAST / SHEET' : 'MOTION / SHEET'}<span>{settings.direction === 1 ? '→' : '←'}</span></div>
                 </div>
                 <Timeline frame={frame} playing={playing} playbackRate={playbackRate} loop={loop} onToggle={togglePlay} onSeek={seek} onStep={step} onRestart={() => seek(0)} onRate={setPlaybackRate} onLoop={() => setLoop((l) => !l)} />
               </div>
@@ -265,7 +294,7 @@ export default function App() {
                 <div className="expression-row" role="group" aria-label="Expression">
                   {EMOTIONS.map((e) => (
                     <button key={e.id} className={`expression-btn ${settings.emotion === e.id ? 'active' : ''}`} onClick={() => update({ emotion: e.id })} aria-pressed={settings.emotion === e.id}>
-                      <span className="expression-face"><CharacterHead emotion={e.id} colors={settings.colors} glasses={settings.glasses} /></span>
+                      <span className="expression-face"><CharacterHead emotion={e.id} colors={settings.colors} glasses={settings.glasses} hair={settings.hair} beard={settings.beard} freckles={settings.freckles} cap={settings.cap} headphones={settings.headphones} /></span>
                       <span className="expression-label">{e.label}</span>
                       <small>{e.note}</small>
                       {settings.emotion === e.id && <span className="expression-check"><Check size={11} /></span>}
@@ -275,7 +304,7 @@ export default function App() {
               </div>
             </div>
 
-            <Inspector settings={settings} update={update} presets={presets} activePreset={activePreset} onPreset={applyPreset} onDeletePreset={deletePreset} references={references} activeReference={activeReference} onReferenceSelect={setActiveReference} onReferenceUpload={uploadReferences} onReferenceRemove={removeReferences} referenceOpacity={referenceOpacity} onReferenceOpacity={setReferenceOpacity} showReference={showReference} onShowReference={setShowReference} />
+            <Inspector settings={settings} update={update} presets={presets} activePreset={activePreset} onPreset={applyPreset} onDeletePreset={deletePreset} onCharacter={applyCharacter} references={references} activeReference={activeReference} onReferenceSelect={setActiveReference} onReferenceUpload={uploadReferences} onReferenceRemove={removeReferences} referenceOpacity={referenceOpacity} onReferenceOpacity={setReferenceOpacity} showReference={showReference} onShowReference={setShowReference} />
           </main>
           <footer className="studio-footer"><span><i />Deterministic by design — the same frame always renders the same pose.</span><span>Built with Remotion · SVG · two-bone IK</span></footer>
         </>

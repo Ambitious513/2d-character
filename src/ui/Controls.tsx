@@ -1,7 +1,8 @@
 import { useRef } from 'react';
-import { Activity, ArrowLeftRight, Camera, ChevronDown, Glasses, ImagePlus, Layers, Palette, PersonStanding, SlidersHorizontal, Sparkles, Trash2, Upload, Backpack, Eye, Footprints, Gauge, MoveHorizontal, Waves, Wind } from 'lucide-react';
-import type { SceneSettings, CharacterColors, TimeOfDay, Motion } from '../rig/types';
-import { MOTIONS, TIMES_OF_DAY } from '../rig/types';
+import { Activity, ArrowLeftRight, Camera, ChevronDown, Glasses, ImagePlus, Layers, Palette, PersonStanding, SlidersHorizontal, Sparkles, Trash2, Upload, Backpack, Eye, Footprints, Gauge, MoveHorizontal, Waves, Wind, Users, Shirt, Scissors, MessageSquare, Crown, Headphones, Snowflake, Smile, CircleDot } from 'lucide-react';
+import type { SceneSettings, CharacterColors, TimeOfDay, Motion, SceneId, HairStyle, Outfit, Build } from '../rig/types';
+import { MOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY } from '../rig/types';
+import { listCharacters } from '../rig/cast';
 
 export interface Preset { id: string; name: string; settings: SceneSettings; custom?: boolean }
 export interface ReferenceImage { id: string; name: string; url: string }
@@ -42,17 +43,34 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
   );
 }
 
+/** Labelled dropdown, for vocabularies too long for a segmented control. */
+export function Picker<T extends string>({ label, options, value, onChange }: { label: string; options: { id: T; label: string }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <label className="picker-row">
+      <span>{label}</span>
+      <span className="select-wrap">
+        <select value={value} onChange={(e) => onChange(e.target.value as T)} aria-label={label}>
+          {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+        <ChevronDown size={15} />
+      </span>
+    </label>
+  );
+}
+
 const COLOR_LABELS: { key: keyof CharacterColors; label: string }[] = [
-  { key: 'jacket', label: 'Jacket' }, { key: 'pants', label: 'Pants' }, { key: 'skin', label: 'Skin' }, { key: 'hair', label: 'Hair' }, { key: 'shoes', label: 'Shoes' },
+  { key: 'jacket', label: 'Garment' }, { key: 'pants', label: 'Pants' }, { key: 'skin', label: 'Skin' },
+  { key: 'hair', label: 'Hair' }, { key: 'shoes', label: 'Shoes' }, { key: 'accent', label: 'Accent' },
 ];
 
-export function Inspector({ settings, update, presets, activePreset, onPreset, onDeletePreset, references, activeReference, onReferenceSelect, onReferenceUpload, onReferenceRemove, referenceOpacity, onReferenceOpacity, showReference, onShowReference }: {
+export function Inspector({ settings, update, presets, activePreset, onPreset, onDeletePreset, onCharacter, references, activeReference, onReferenceSelect, onReferenceUpload, onReferenceRemove, referenceOpacity, onReferenceOpacity, showReference, onShowReference }: {
   settings: SceneSettings;
   update: (patch: Partial<SceneSettings>) => void;
   presets: Preset[];
   activePreset: string;
   onPreset: (id: string) => void;
   onDeletePreset: (id: string) => void;
+  onCharacter: (id: string) => void;
   references: ReferenceImage[];
   activeReference: number;
   onReferenceSelect: (i: number) => void;
@@ -65,6 +83,7 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const active = presets.find((p) => p.id === activePreset);
+  const cast = listCharacters();
   return (
     <aside className="inspector" aria-label="Live character controls">
       <div className="inspector-head">
@@ -85,6 +104,27 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
           </div>
         </Section>
 
+        <Section title="Cast" icon={<Users size={15} />} hint={`${cast.length} characters`}>
+          <div className="cast-grid" role="group" aria-label="Cast member">
+            {cast.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`cast-chip ${settings.character === c.id ? 'active' : ''}`}
+                aria-pressed={settings.character === c.id}
+                onClick={() => onCharacter(c.id)}
+                title={c.tagline}
+              >
+                <span className="cast-dot" style={{ background: c.colors.jacket, borderColor: c.colors.skin }} />
+                {c.name}
+              </button>
+            ))}
+          </div>
+          <Picker label="Build" options={BUILDS} value={settings.build} onChange={(build: Build) => update({ build })} />
+          <Picker label="Hair" options={HAIR_STYLES} value={settings.hair} onChange={(hair: HairStyle) => update({ hair })} />
+          <Picker label="Outfit" options={OUTFITS} value={settings.outfit} onChange={(outfit: Outfit) => update({ outfit })} />
+        </Section>
+
         <Section title="Motion" icon={<Activity size={15} />} hint="frame-based">
           <Segmented label="Motion" options={MOTIONS} value={settings.motion} onChange={(motion: Motion) => update({ motion })} />
           <div className="direction-row">
@@ -101,7 +141,22 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
           <Slider label="Character scale" icon={<PersonStanding size={13} />} value={settings.scale} min={0.7} max={1.6} step={0.02} onChange={(scale) => update({ scale })} format={(v) => `${v.toFixed(2)}×`} />
         </Section>
 
-        <Section title="Character" icon={<Palette size={15} />}>
+        <Section title="Dialogue" icon={<MessageSquare size={15} />} hint="lip-sync">
+          <textarea
+            className="dialogue-input"
+            value={settings.dialogue}
+            rows={3}
+            maxLength={240}
+            placeholder="Type a line — the mouth follows the text."
+            aria-label="Dialogue line"
+            onChange={(e) => update({ dialogue: e.target.value })}
+          />
+          <p className="section-note">Set motion to <b>Talk</b> to see the visemes. Timing is derived from the text, so renders stay deterministic.</p>
+          <Slider label="Speech rate" icon={<Gauge size={13} />} value={settings.speechRate} min={0.5} max={2} step={0.05} onChange={(speechRate) => update({ speechRate })} format={(v) => `${v.toFixed(2)}×`} />
+          <Toggle label="Burn in subtitles" icon={<MessageSquare size={14} />} checked={settings.showSubtitles} onChange={(showSubtitles) => update({ showSubtitles })} />
+        </Section>
+
+        <Section title="Look" icon={<Palette size={15} />}>
           <div className="color-grid">
             {COLOR_LABELS.map(({ key, label }) => (
               <label key={key} className="color-field" title={`${label} color`}>
@@ -115,12 +170,18 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
           </div>
           <Toggle label="Backpack" icon={<Backpack size={14} />} checked={settings.backpack} onChange={(backpack) => update({ backpack })} />
           <Toggle label="Glasses" icon={<Glasses size={14} />} checked={settings.glasses} onChange={(glasses) => update({ glasses })} />
+          <Toggle label="Cap" icon={<Crown size={14} />} checked={settings.cap} onChange={(cap) => update({ cap })} />
+          <Toggle label="Scarf" icon={<Snowflake size={14} />} checked={settings.scarf} onChange={(scarf) => update({ scarf })} />
+          <Toggle label="Headphones" icon={<Headphones size={14} />} checked={settings.headphones} onChange={(headphones) => update({ headphones })} />
+          <Toggle label="Beard" icon={<Scissors size={14} />} checked={settings.beard} onChange={(beard) => update({ beard })} />
+          <Toggle label="Freckles" icon={<CircleDot size={14} />} checked={settings.freckles} onChange={(freckles) => update({ freckles })} />
         </Section>
 
-        <Section title="Street & camera" icon={<Layers size={15} />}>
-          <Segmented label="Lighting" options={TIMES_OF_DAY} value={settings.timeOfDay} onChange={(timeOfDay: TimeOfDay) => update({ timeOfDay })} />
+        <Section title="Scene & camera" icon={<Layers size={15} />}>
+          <Segmented label="Scene" options={SCENES} value={settings.scene} onChange={(scene: SceneId) => update({ scene })} />
+          <Segmented label="Time of day" options={TIMES_OF_DAY} value={settings.timeOfDay} onChange={(timeOfDay: TimeOfDay) => update({ timeOfDay })} />
           <Slider label="Parallax depth" icon={<MoveHorizontal size={13} />} value={settings.parallax} min={0} max={1} step={0.05} onChange={(parallax) => update({ parallax })} format={(v) => `${Math.round(v * 100)}%`} />
-          <Toggle label="Follow camera" icon={<Camera size={14} />} description="Keep Milo centered while the street scrolls" checked={settings.followCamera} onChange={(followCamera) => update({ followCamera })} />
+          <Toggle label="Follow camera" icon={<Camera size={14} />} description="Hold the character centre-frame while the world scrolls" checked={settings.followCamera} onChange={(followCamera) => update({ followCamera })} />
           <Toggle label="Rig guides" icon={<Eye size={14} />} description="Show ground line, joints and IK bones" checked={settings.guides} onChange={(guides) => update({ guides })} />
         </Section>
 

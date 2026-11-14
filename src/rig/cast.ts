@@ -11,6 +11,8 @@
 
 import {
   DEFAULT_COLORS,
+  DEFAULT_SETTINGS,
+  type SceneSettings,
   type CharacterColors,
   type CharacterSettings,
   type Emotion,
@@ -272,6 +274,24 @@ export function characterSettings(
     seed: p.seed ?? 0,
     proportions: def.proportions,
     ...overrides,
+    // Palette is merged key-by-key so a partial `colors` override keeps the
+    // rest of the cast member's look instead of falling back to defaults.
     colors: { ...def.colors, ...(overrides.colors ?? {}) },
+  };
+}
+
+/**
+ * Scene-level settings for a cast member: `characterSettings` plus the
+ * environment defaults. Handy for `defaultProps` in a composition.
+ */
+export function castSceneSettings(
+  id: string,
+  overrides: Partial<SceneSettings> = {},
+): SceneSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...characterSettings(id, overrides),
+    ...overrides,
+    colors: { ...getCharacter(id).colors, ...(overrides.colors ?? {}) },
   };
 }

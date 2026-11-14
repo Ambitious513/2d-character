@@ -1,52 +1,94 @@
+/**
+ * Registered Remotion compositions.
+ *
+ * Every composition is a pure function of (props, frame): no timers, no
+ * Math.random, no network. That is what makes parallel renders frame-identical.
+ *
+ * Props are partial — `mergeSettings` fills in the cast member's look and the
+ * scene defaults, so `<WalkScene character="ada" motion="run" />` is enough.
+ */
+
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
-import { CharacterRig, CharacterHeadArt } from '../rig/Character';
-import { EnvironmentLayer } from '../rig/Environment';
-import { StreetLayer } from '../rig/Street';
-import { samplePose, GROUND_Y, CHARACTER_X, WIDTH } from '../rig/gait';
-import { CAST, characterSettings, getCharacter } from '../rig/cast';
-import { buildSpeech, splitTurns, visemeAt } from '../rig/lipsync';
-import {
-  DEFAULT_SETTINGS,
-  EMOTIONS,
-  type CharacterSettings,
-  type SceneSettings,
-} from '../rig/types';
+import { CharacterRig, CharacterHead, Face } from '../rig/Character';
+import { SceneLayer } from '../rig/environments';
+import { samplePose, GROUND_Y, CHARACTER_X, WIDTH, HEIGHT, FPS } from '../rig/gait';
+import { castSceneSettings, getCharacter, listCharacters } from '../rig/cast';
+import { DEFAULT_SETTINGS, EMOTIONS, MOTIONS, type CharacterSettings, type SceneSettings } from '../rig/types';
+import { dialogueSchedule, turnAt, wrapLines, type DialogueTurn } from '../rig/dialogue';
+import { shade } from '../rig/color';
 
 export type SceneProps = Partial<SceneSettings>;
 
 /**
- * Merge user props over the defaults.
- *
- * v1 presets carried `environment`; v2 renamed it to `timeOfDay`. Both are
- * accepted, with `timeOfDay` winning when a caller supplies both.
+ * Resolve props into a complete settings object.
+ * Accepts the v1 `environment` key and maps it onto `timeOfDay`.
  */
 export function mergeSettings(props: SceneProps = {}): SceneSettings {
   const { environment, ...rest } = props;
-  return {
-    ...DEFAULT_SETTINGS,
+  const base = castSceneSettings(props.character ?? DEFAULT_SETTINGS.character);
+  const merged: SceneSettings = {
+    ...base,
     ...rest,
-    timeOfDay: props.timeOfDay ?? environment ?? DEFAULT_SETTINGS.timeOfDay,
-    colors: { ...DEFAULT_SETTINGS.colors, ...props.colors },
+    colors: { ...base.colors, ...(props.colors ?? {}) },
   };
+  if (environment && !props.timeOfDay) merged.timeOfDay = environment;
+  delete merged.environment;
+  return merged;
 }
 
-/** Ground shadow, sized by how much of the body is in contact. */
-function ContactShadow({ x, scale, moving, lift = 0 }: { x: number; scale: number; moving: boolean; lift?: number }) {
-  const airborne = Math.max(0, -lift);
-  const spread = (moving ? 52 : 44) * scale * (1 + airborne / 260);
+/** Largest scale that keeps the whole rig (plus jump clearance) inside `budget`. */
+function fitScale(settings: SceneSettings, height: number, budget: number): number {
+  const clearance = settings.motion === 'jump' ? 110 : 24;
+  return Math.min(settings.scale, budget / (height + clearance));
+}
+
+/** Contact shadow. Shrinks and fades while the character is airborne. */
+function Shadow({ x, scale, lift = 0, moving = false }: { x: number; scale: number; lift?: number; moving?: boolean }) {
+  const air = Math.max(0, Math.min(1, -lift / 150));
   return (
     <ellipse
       cx={x}
       cy={GROUND_Y + 4}
-      rx={spread}
-      ry={8 * scale * Math.max(0.45, 1 - airborne / 200)}
+      rx={(moving ? 52 : 44) * scale * (1 - air * 0.35)}
+      ry={8 * scale * (1 - air * 0.3)}
       fill="#26352E"
-      opacity={0.18 * Math.max(0.25, 1 - airborne / 170)}
+      opacity={0.18 * (1 - air * 0.55)}
     />
   );
 }
 
-/** Main reusable composition: character + scrolling environment. */
+/** Burned-in subtitles, wrapped deterministically. */
+export function Subtitles({ text, y = 664, maxChars = 46 }: { text: string; y?: number; maxChars?: number }) {
+  if (!text.trim()) return null;
+  const lines = wrapLines(text, maxChars, 2);
+  const w = Math.min(1120, Math.max(...lines.map((l) => l.length)) * 15 + 64);
+  const h = lines.length * 34 + 26;
+  return (
+    <g data-subtitles="true">
+      <rect x={(WIDTH - w) / 2} y={y - h + 22} width={w} height={h} rx={12} fill="#1B241F" opacity={0.78} />
+      {lines.map((l, i) => (
+        <text
+          key={i}
+          x={WIDTH / 2}
+          y={y - (lines.length - 1 - i) * 34}
+          textAnchor="middle"
+          fontFamily="system-ui, -apple-system, Segoe UI, sans-serif"
+          fontSize={26}
+          fontWeight={600}
+          fill="#FFFDF6"
+        >
+          {l}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Scene compositions                                                  */
+/* ------------------------------------------------------------------ */
+
+/** Main reusable composition: character + scrolling world, frame-deterministic. */
 export function WalkScene(props: SceneProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -58,37 +100,37 @@ export function WalkScene(props: SceneProps) {
   const moving = settings.motion === 'walk' || settings.motion === 'run';
   return (
     <AbsoluteFill style={{ backgroundColor: '#BFE3E8' }}>
-      <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <EnvironmentLayer
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <SceneLayer
           scene={settings.scene}
-          timeOfDay={settings.timeOfDay}
           distance={settings.followCamera ? worldDistance : 0}
           direction={settings.direction}
+          timeOfDay={settings.timeOfDay}
           parallax={settings.parallax}
           time={frame / fps}
         />
-        <ContactShadow x={x} scale={settings.scale} moving={moving} lift={pose.lift} />
-        {settings.guides && <path d={`M 0 ${GROUND_Y} H 1280`} stroke="#F26B38" strokeWidth={1.5} strokeDasharray="6 6" opacity={0.8} />}
+        <Shadow x={x} scale={settings.scale} lift={pose.lift} moving={moving} />
+        {settings.guides && <path d={`M 0 ${GROUND_Y} H ${WIDTH}`} stroke="#F26B38" strokeWidth={1.5} strokeDasharray="6 6" opacity={0.8} />}
         <g transform={`translate(${x} ${GROUND_Y}) scale(${settings.scale})`}>
           <CharacterRig settings={settings} frame={frame} fps={fps} showGuides={settings.guides} />
         </g>
-        {settings.showSubtitles && settings.dialogue && (
-          <Subtitle text={settings.dialogue} time={frame / fps} rate={settings.speechRate} seed={settings.seed} />
-        )}
+        {settings.showSubtitles && settings.dialogue ? <Subtitles text={settings.dialogue} /> : null}
       </svg>
     </AbsoluteFill>
   );
 }
 
-/** Transparent character-only composition for PNG sequences / ProRes alpha. */
+/** Transparent character-only composition for PNG sequences / alpha video. */
 export function CharacterOnly(props: SceneProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const settings = mergeSettings(props);
+  const pose = samplePose(settings, frame, fps);
+  const fit = fitScale(settings, pose.skeleton.height, 660) * 1.55;
   return (
     <AbsoluteFill style={{ backgroundColor: 'transparent' }}>
       <svg viewBox="0 0 720 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <g transform={`translate(360 650) scale(${settings.scale * 1.55})`}>
+        <g transform={`translate(360 690) scale(${fit})`}>
           <CharacterRig settings={settings} frame={frame} fps={fps} showGuides={settings.guides} />
         </g>
       </svg>
@@ -96,103 +138,138 @@ export function CharacterOnly(props: SceneProps) {
   );
 }
 
-export function StreetOnly(props: SceneProps) {
+/** Environment-only plate. `scene` picks the world; defaults to the street. */
+export function SceneOnly(props: SceneProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const settings = mergeSettings(props);
   const pose = samplePose(settings, frame, fps);
   return (
     <AbsoluteFill>
-      <StreetLayer
-        distance={pose.distance * settings.scale}
-        direction={settings.direction}
-        timeOfDay={settings.timeOfDay}
-        parallax={settings.parallax}
-        time={frame / fps}
-      />
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <SceneLayer
+          scene={settings.scene}
+          distance={pose.distance * settings.scale}
+          direction={settings.direction}
+          timeOfDay={settings.timeOfDay}
+          parallax={settings.parallax}
+          time={frame / fps}
+        />
+      </svg>
     </AbsoluteFill>
   );
 }
 
-/** Every expression, laid out to fit the frame regardless of set size. */
+/** @deprecated v1 name for `SceneOnly`. */
+export const StreetOnly = SceneOnly;
+
+/* ------------------------------------------------------------------ */
+/* Sheets — reference grids for a library, not a single video          */
+/* ------------------------------------------------------------------ */
+
+const SANS = 'system-ui, -apple-system, Segoe UI, sans-serif';
+const SERIF = 'Georgia, serif';
+
+/** Every expression, laid out 4 + 3 so all seven fit the frame. */
 export function EmotionSheet(props: SceneProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const settings = mergeSettings(props);
   const pose = samplePose({ ...settings, motion: 'idle' }, frame, fps);
-  const n = EMOTIONS.length;
-  const margin = 96;
-  const slot = (WIDTH - margin * 2) / n;
-  const faceScale = Math.min(1.55, (slot * 0.78) / 100);
+  const def = getCharacter(settings.character);
+  const cols = [220, 480, 740, 1000];
   return (
     <AbsoluteFill style={{ backgroundColor: '#F5F4EF' }}>
-      <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <text x={margin} y={104} fontSize={44} fill="#26352E" fontFamily="Georgia, serif">A face for every moment.</text>
-        <text x={margin} y={142} fontSize={20} fill="#6B7A70" fontFamily="system-ui, sans-serif">
-          {getCharacter(settings.character).name} · {n} reusable expressions · deterministic blink
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x={72} y={86} fontSize={42} fill="#26352E" fontFamily={SERIF}>A face for every moment.</text>
+        <text x={72} y={120} fontSize={19} fill="#6B7A70" fontFamily={SANS}>
+          {def.name} · {EMOTIONS.length} reusable expressions · deterministic blink
         </text>
-        {EMOTIONS.map((e, i) => (
-          <g key={e.id} transform={`translate(${margin + slot * (i + 0.5)} 380)`}>
-            <circle cx={0} cy={-10} r={slot * 0.42} fill={i === 1 ? '#F6D78B' : '#E8ECE6'} />
-            <g transform={`scale(${faceScale})`}>
-              <CharacterHeadArt
-                emotion={e.id}
-                colors={settings.colors}
-                glasses={settings.glasses}
-                beard={settings.beard}
-                freckles={settings.freckles}
-                hair={settings.hair}
-                blink={pose.blink}
-              />
+        {EMOTIONS.map((e, i) => {
+          const row = i < 4 ? 0 : 1;
+          const x = row === 0 ? cols[i] : 350 + (i - 4) * 260;
+          const y = row === 0 ? 268 : 520;
+          return (
+            <g key={e.id} transform={`translate(${x} ${y})`}>
+              <circle cx={0} cy={-6} r={86} fill={e.id === settings.emotion ? '#F6D78B' : '#E8ECE6'} />
+              <g transform="scale(1.22)">
+                <Face
+                  emotion={e.id}
+                  colors={settings.colors}
+                  glasses={settings.glasses}
+                  blink={pose.blink}
+                  beard={settings.beard}
+                  freckles={settings.freckles}
+                />
+              </g>
+              <text x={0} y={116} textAnchor="middle" fontSize={25} fill="#26352E" fontFamily={SERIF}>{e.label}</text>
+              <text x={0} y={142} textAnchor="middle" fontSize={14} fill="#6B7A70" fontFamily={SANS}>{e.note}</text>
             </g>
-            <text x={0} y={150} textAnchor="middle" fontSize={24} fill="#26352E" fontFamily="Georgia, serif">{e.label}</text>
-            <text x={0} y={178} textAnchor="middle" fontSize={14} fill="#6B7A70" fontFamily="system-ui, sans-serif">{e.note}</text>
-          </g>
-        ))}
+          );
+        })}
       </svg>
     </AbsoluteFill>
   );
 }
 
-/**
- * The whole cast, side by side, walking in place. Each member keeps their own
- * build, palette, hair and outfit — this is the composition that proves the rig
- * is genuinely data-driven.
- */
+/** The whole cast, labelled. Drop new members into `cast.ts` and they appear. */
+export function CastSheet(props: SceneProps) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const settings = mergeSettings(props);
+  const cast = listCharacters();
+  const slot = WIDTH / cast.length;
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#F5F4EF' }}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <SceneLayer scene="backdrop" timeOfDay={settings.timeOfDay} parallax={0} distance={0} time={frame / fps} />
+        <text x={72} y={84} fontSize={42} fill="#26352E" fontFamily={SERIF}>The cast.</text>
+        <text x={72} y={118} fontSize={19} fill="#6B7A70" fontFamily={SANS}>
+          {cast.length} characters · one rig · every look is data
+        </text>
+        {cast.map((c, i) => {
+          const s = castSceneSettings(c.id, { motion: 'idle', backpack: c.accessories?.backpack ?? false });
+          const x = slot * (i + 0.5);
+          const scale = 0.78;
+          return (
+            <g key={c.id}>
+              <ellipse cx={x} cy={556} rx={44 * scale} ry={7 * scale} fill="#26352E" opacity={0.16} />
+              <g transform={`translate(${x} 552) scale(${scale})`}>
+                <CharacterRig settings={s} frame={frame} fps={fps} />
+              </g>
+              <text x={x} y={604} textAnchor="middle" fontSize={26} fill="#26352E" fontFamily={SERIF}>{c.name}</text>
+              <text x={x} y={630} textAnchor="middle" fontSize={13} fill="#6B7A70" fontFamily={SANS}>{c.build} · {c.hair} · {c.outfit}</text>
+              <text x={x} y={654} textAnchor="middle" fontSize={12} fill="#8A968D" fontFamily={SANS}>
+                {wrapLines(c.tagline, 30, 2)[0]}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </AbsoluteFill>
+  );
+}
+
+/** The cast walking through a static street plate — feet stay locked. */
 export function CastScene(props: SceneProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const settings = mergeSettings(props);
-  const n = CAST.length;
-  const margin = 110;
-  const slot = (WIDTH - margin * 2) / n;
+  const cast = listCharacters();
   return (
     <AbsoluteFill style={{ backgroundColor: '#BFE3E8' }}>
-      <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <EnvironmentLayer
-          scene={settings.scene}
-          timeOfDay={settings.timeOfDay}
-          distance={frame * 2.4}
-          direction={1}
-          parallax={settings.parallax}
-          time={frame / fps}
-        />
-        {CAST.map((c, i) => {
-          const cs: CharacterSettings = characterSettings(c.id, {
-            motion: settings.motion === 'idle' ? 'idle' : 'walk',
-            emotion: settings.emotion,
-            direction: 1,
-          });
-          const scale = Math.min(cs.scale, 1.05);
-          const x = margin + slot * (i + 0.5);
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax} time={frame / fps} />
+        {cast.map((c, i) => {
+          const s = castSceneSettings(c.id, { motion: 'walk', scale: 0.92 });
+          const pose = samplePose(s, frame, fps);
+          const x = 150 + i * -190 + pose.distance * s.scale;
           return (
             <g key={c.id}>
-              <ContactShadow x={x} scale={scale} moving />
-              <g transform={`translate(${x} ${GROUND_Y}) scale(${scale})`}>
-                <CharacterRig settings={cs} frame={frame} fps={fps} />
+              <Shadow x={x} scale={s.scale} moving />
+              <g transform={`translate(${x} ${GROUND_Y}) scale(${s.scale})`}>
+                <CharacterRig settings={s} frame={frame} fps={fps} />
               </g>
-              <text x={x} y={GROUND_Y + 52} textAnchor="middle" fontSize={22} fill="#26352E" fontFamily="Georgia, serif">{c.name}</text>
-              <text x={x} y={GROUND_Y + 76} textAnchor="middle" fontSize={13} fill="#3E5A50" fontFamily="system-ui, sans-serif">{c.build}</text>
             </g>
           );
         })}
@@ -201,89 +278,156 @@ export function CastScene(props: SceneProps) {
   );
 }
 
-export interface DialogueSceneProps extends SceneProps {
-  /** One line per turn, or an array of lines. Speakers alternate. */
-  script?: string | string[];
-  /** Cast ids for the two speakers. */
-  speakers?: [string, string];
-}
-
-/** Burned-in subtitle, highlighted word by word from the same speech timing. */
-function Subtitle({ text, time, rate, seed, y = 660 }: { text: string; time: number; rate: number; seed: number; y?: number }) {
-  const speech = buildSpeech(text, rate, seed);
-  if (time > speech.duration) return null;
-  const cue = visemeAt(speech, time);
+/** Every motion in one grid — the animation vocabulary of the rig. */
+export function MotionSheet(props: SceneProps) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const settings = mergeSettings(props);
+  const cols = 5;
   return (
-    <g>
-      <rect x={WIDTH / 2 - 460} y={y - 34} width={920} height={54} rx={12} fill="#26352E" opacity={0.82} />
-      <text x={WIDTH / 2} y={y} textAnchor="middle" fontSize={26} fill="#FFFDF6" fontFamily="system-ui, sans-serif">
-        {text}
-      </text>
-      <rect x={WIDTH / 2 - 460} y={y + 16} width={920 * Math.min(1, time / Math.max(0.001, speech.duration))} height={3} rx={1.5} fill="#F6C65B" opacity={cue.id === 'rest' ? 0.4 : 0.95} />
-    </g>
+    <AbsoluteFill style={{ backgroundColor: '#F5F4EF' }}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <text x={72} y={72} fontSize={40} fill="#26352E" fontFamily={SERIF}>Ten ways to move.</text>
+        <text x={72} y={104} fontSize={18} fill="#6B7A70" fontFamily={SANS}>
+          One procedural rig · stance-locked IK · frame-deterministic
+        </text>
+        {MOTIONS.map((m, i) => {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const x = 140 + col * 256;
+          const ground = row === 0 ? 352 : 668;
+          const s: SceneSettings = {
+            ...settings,
+            motion: m.id,
+            dialogue: m.id === 'talk' ? settings.dialogue || 'Hello there, nice to meet you.' : settings.dialogue,
+            followCamera: false,
+          };
+          const scale = 0.44;
+          return (
+            <g key={m.id}>
+              <ellipse cx={x} cy={ground + 3} rx={40 * scale} ry={6 * scale} fill="#26352E" opacity={0.15} />
+              <g transform={`translate(${x} ${ground}) scale(${scale})`}>
+                <CharacterRig settings={s} frame={frame} fps={fps} />
+              </g>
+              <text x={x} y={ground + 30} textAnchor="middle" fontSize={22} fill="#26352E" fontFamily={SERIF}>{m.label}</text>
+              <text x={x} y={ground + 52} textAnchor="middle" fontSize={12} fill="#6B7A70" fontFamily={SANS}>{m.note}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </AbsoluteFill>
   );
 }
 
-/**
- * Two characters taking turns on a script. Turn timing comes from the same
- * deterministic lip-sync model that drives the mouths, so subtitles, mouths and
- * speaker changes can never drift apart.
- */
-export function DialogueScene({ script, speakers = ['milo', 'ada'], ...rest }: DialogueSceneProps) {
+/* ------------------------------------------------------------------ */
+/* Speech                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface TalkingHeadProps extends SceneProps {
+  /** Background plate colour; 'transparent' for compositing. */
+  background?: string;
+}
+
+/** Close-up head with text-driven lip-sync. Great for reaction shots. */
+export function TalkingHead(props: TalkingHeadProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const settings = mergeSettings(rest);
-  const lines = splitTurns(script ?? [
-    'Hey! Good to see you.',
-    'Okay so — hear me out on this one.',
-  ]);
-  const t = frame / fps;
+  const settings = mergeSettings({ motion: 'talk', ...props });
+  const pose = samplePose(settings, frame, fps);
+  const def = getCharacter(settings.character);
+  const background = props.background ?? '#F5F4EF';
+  return (
+    <AbsoluteFill style={{ backgroundColor: background }}>
+      <svg viewBox="0 0 720 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <circle cx={360} cy={300} r={210} fill={shade(settings.colors.jacket, 60)} opacity={0.35} />
+        <g transform="translate(360 320) scale(2.5)">
+          <CharacterHead
+            emotion={settings.emotion}
+            colors={settings.colors}
+            glasses={settings.glasses}
+            blink={pose.blink}
+            mouth={pose.mouth}
+            mouthOpen={pose.mouthOpen}
+            beard={settings.beard}
+            freckles={settings.freckles}
+            hair={settings.hair}
+            cap={settings.cap}
+            headphones={settings.headphones}
+          />
+        </g>
+        <text x={360} y={588} textAnchor="middle" fontSize={30} fill="#26352E" fontFamily={SERIF}>{def.name}</text>
+        {settings.showSubtitles && settings.dialogue ? (
+          <g transform="translate(-280 0)">
+            <Subtitles text={settings.dialogue} y={664} maxChars={34} />
+          </g>
+        ) : null}
+      </svg>
+    </AbsoluteFill>
+  );
+}
 
-  // Accumulate turn start times from the speech model.
-  let cursor = 0;
-  const turns = lines.map((line, i) => {
-    const speaker = speakers[i % speakers.length];
-    const cs = characterSettings(speaker);
-    const speech = buildSpeech(line, cs.speechRate, cs.seed);
-    const start = cursor;
-    cursor += speech.duration;
-    return { line, speaker, cs, speech, start, end: cursor };
-  });
-  const activeIndex = turns.findIndex((turn) => t >= turn.start && t < turn.end);
-  const active = activeIndex >= 0 ? turns[activeIndex] : null;
+export interface DialogueProps extends SceneProps {
+  /** Two cast ids: `[left, right]`. */
+  speakers?: [string, string];
+  /** One line per turn, alternating between the speakers. */
+  script?: string | string[];
+  /** Silence between turns, frames. */
+  gapFrames?: number;
+}
+
+export const DEFAULT_SCRIPT = [
+  'Hey! Good to see you.',
+  'You too. How is the new rig coming along?',
+  'Ten motions, seven faces, and it never skates.',
+  'Sold. Let us put it in the next video.',
+];
+
+/**
+ * Two characters talking, with lip-sync, subtitles and a speaker highlight.
+ * Timing is derived from the text, so the whole scene is deterministic.
+ */
+export function DialogueScene(props: DialogueProps) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const settings = mergeSettings(props);
+  const [leftId, rightId] = props.speakers ?? ['milo', 'ada'];
+  const script = props.script ?? DEFAULT_SCRIPT;
+  const gapFrames = props.gapFrames ?? 14;
+  const turns = dialogueSchedule(script, { fps, speechRate: settings.speechRate, gapFrames, seeds: [3, 17] });
+  const active = turnAt(turns, frame);
+  const scale = 1.02;
+
+  const performer = (id: string, index: 0 | 1, direction: 1 | -1, x: number) => {
+    const speaking = active?.speaker === index;
+    const base = castSceneSettings(id, { scale, direction, backpack: false });
+    const s: CharacterSettings = speaking
+      ? { ...base, motion: 'talk', emotion: 'happy', dialogue: active!.text, seed: index === 0 ? 3 : 17 }
+      : { ...base, motion: 'idle', emotion: index === 0 ? 'neutral' : 'focused', seed: index === 0 ? 3 : 17 };
+    // The speaker's clock starts at their turn so visemes line up with the text.
+    const localFrame = speaking ? frame - active!.startFrame : frame;
+    return (
+      <g>
+        <Shadow x={x} scale={scale} />
+        <g transform={`translate(${x} ${GROUND_Y}) scale(${scale})`} opacity={speaking || !active ? 1 : 0.92}>
+          <CharacterRig settings={s} frame={localFrame} fps={fps} />
+        </g>
+        <text x={x} y={GROUND_Y + 44} textAnchor="middle" fontSize={18} fill="#26352E" fontFamily={SANS} opacity={0.75}>
+          {getCharacter(id).name}
+        </text>
+      </g>
+    );
+  };
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#BFE3E8' }}>
-      <svg viewBox="0 0 1280 720" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <EnvironmentLayer scene={settings.scene} timeOfDay={settings.timeOfDay} distance={0} parallax={settings.parallax} time={t} />
-        {turns.length > 0 && [0, 1].map((slot) => {
-          const turn = turns.find((x) => speakers.indexOf(x.speaker) === slot) ?? turns[slot % turns.length];
-          const speakerId = speakers[slot];
-          const isActive = active?.speaker === speakerId;
-          const cs: CharacterSettings = characterSettings(speakerId, {
-            motion: isActive ? 'talk' : 'idle',
-            emotion: isActive ? 'happy' : 'neutral',
-            dialogue: isActive ? active!.line : '',
-            direction: slot === 0 ? 1 : -1,
-          });
-          // Restart the speaking character's clock at the turn boundary so the
-          // mouth aligns with the first syllable.
-          const localFrame = isActive ? Math.round((t - active!.start) * fps) : frame;
-          const scale = Math.min(cs.scale, 1.12);
-          const x = slot === 0 ? 400 : 880;
-          return (
-            <g key={speakerId}>
-              <ContactShadow x={x} scale={scale} moving={false} />
-              <g transform={`translate(${x} ${GROUND_Y}) scale(${scale})`} opacity={isActive ? 1 : 0.94}>
-                <CharacterRig settings={cs} frame={localFrame} fps={fps} />
-              </g>
-            </g>
-          );
-        })}
-        {active && (
-          <Subtitle text={active.line} time={t - active.start} rate={active.cs.speechRate} seed={active.cs.seed} />
-        )}
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax * 0.4} time={frame / fps} />
+        {performer(leftId, 0, 1, 430)}
+        {performer(rightId, 1, -1, 850)}
+        {settings.showSubtitles !== false && active ? <Subtitles text={active.text} y={690} /> : null}
       </svg>
     </AbsoluteFill>
   );
 }
+
+export { FPS };

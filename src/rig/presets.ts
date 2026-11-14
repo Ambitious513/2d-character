@@ -1,123 +1,115 @@
 /**
- * Built-in scene presets.
+ * Seeded looks. Each preset is a full `SceneSettings` object, so it can be
+ * dropped straight into `defaultProps`, saved as JSON, or loaded in the studio.
  *
- * Presets live here rather than in `types.ts` because they are composed from the
- * cast registry, and `cast.ts` already depends on `types.ts`. Keeping the
- * dependency one-directional avoids an import cycle.
- *
- * A preset is a complete, JSON-serialisable `SceneSettings`, so it can be used
- * directly as a Remotion `defaultProps`, saved to disk, or loaded in the studio.
+ * Presets are derived from the cast registry: change a cast member and every
+ * preset that uses them follows.
  */
 
-import { characterSettings, listCharacters } from './cast';
-import { DEFAULT_SETTINGS, type SceneSettings } from './types';
+import { castSceneSettings } from './cast';
+import type { SceneSettings } from './types';
 
 export interface ScenePreset {
-  id: string;
   name: string;
   note: string;
   settings: SceneSettings;
 }
 
-/** Wrap per-character settings into full scene settings. */
-function scene(
-  character: string,
-  overrides: Partial<SceneSettings> = {},
-): SceneSettings {
-  return {
-    ...DEFAULT_SETTINGS,
-    ...characterSettings(character, overrides),
-    ...overrides,
-    colors: {
-      ...characterSettings(character).colors,
-      ...(overrides.colors ?? {}),
-    },
-  };
-}
-
 export const PRESETS: ScenePreset[] = [
   {
-    id: 'morning-stroll',
     name: 'Morning stroll',
-    note: 'Milo · daylight sidewalk',
-    settings: scene('milo', {
+    note: 'Milo · street · day',
+    settings: castSceneSettings('milo', {
       motion: 'walk',
       emotion: 'happy',
       scene: 'street',
-      timeOfDay: 'day',
-    }),
-  },
-  {
-    id: 'golden-hour',
-    name: 'Golden hour',
-    note: 'Kwame · warm backlight',
-    settings: scene('kwame', {
-      motion: 'walk',
-      emotion: 'neutral',
-      scene: 'street',
-      timeOfDay: 'golden',
-      parallax: 0.85,
-    }),
-  },
-  {
-    id: 'night-shift',
-    name: 'Night shift',
-    note: 'Ada · lit windows',
-    settings: scene('ada', {
-      motion: 'run',
-      emotion: 'focused',
-      scene: 'street',
-      timeOfDay: 'night',
-      speed: 1.1,
-    }),
-  },
-  {
-    id: 'say-hello',
-    name: 'Say hello',
-    note: 'Juno · waving, alpha-ready',
-    settings: scene('juno', {
-      motion: 'wave',
-      emotion: 'excited',
-      scene: 'backdrop',
       timeOfDay: 'day',
       followCamera: true,
     }),
   },
   {
-    id: 'take-a-line',
-    name: 'Take a line',
-    note: 'Ravi · lip-synced dialogue',
-    settings: scene('ravi', {
-      motion: 'talk',
+    name: 'Golden hour run',
+    note: 'Ada · street · golden',
+    settings: castSceneSettings('ada', {
+      motion: 'run',
       emotion: 'focused',
-      scene: 'backdrop',
-      showSubtitles: true,
-      dialogue: 'Hmm. Let me think about that for a second.',
+      scene: 'street',
+      timeOfDay: 'golden',
+      speed: 1.2,
+      bounce: 0.9,
+      armSwing: 1.1,
     }),
   },
   {
-    id: 'playtime',
-    name: 'Playtime',
-    note: 'Pip · jumping for joy',
-    settings: scene('pip', {
+    name: 'Night shift',
+    note: 'Kwame · street · night',
+    settings: castSceneSettings('kwame', {
+      motion: 'walk',
+      emotion: 'neutral',
+      scene: 'street',
+      timeOfDay: 'night',
+      speed: 0.8,
+      parallax: 0.85,
+    }),
+  },
+  {
+    name: 'Park loop',
+    note: 'Juno · park · day',
+    settings: castSceneSettings('juno', {
+      motion: 'walk',
+      emotion: 'excited',
+      scene: 'park',
+      timeOfDay: 'day',
+      speed: 1.15,
+    }),
+  },
+  {
+    name: 'Studio interview',
+    note: 'Ravi · backdrop · talking',
+    settings: castSceneSettings('ravi', {
+      motion: 'talk',
+      emotion: 'focused',
+      scene: 'backdrop',
+      timeOfDay: 'day',
+      dialogue: 'Here is the thing about good animation: it is all in the timing.',
+      showSubtitles: true,
+      parallax: 0.2,
+    }),
+  },
+  {
+    name: 'Living room sit',
+    note: 'Milo · room · golden',
+    settings: castSceneSettings('milo', {
+      motion: 'sit',
+      emotion: 'happy',
+      scene: 'room',
+      timeOfDay: 'golden',
+      parallax: 0.35,
+      backpack: false,
+    }),
+  },
+  {
+    name: 'Pip pops up',
+    note: 'Pip · park · jump',
+    settings: castSceneSettings('pip', {
       motion: 'jump',
       emotion: 'excited',
-      scene: 'street',
+      scene: 'park',
       timeOfDay: 'day',
+      bounce: 1.15,
+    }),
+  },
+  {
+    name: 'Night wave',
+    note: 'Ada · street · night wave',
+    settings: castSceneSettings('ada', {
+      motion: 'wave',
+      emotion: 'happy',
+      scene: 'street',
+      timeOfDay: 'night',
+      glasses: true,
     }),
   },
 ];
 
-/** One preset per cast member, useful for galleries and contact sheets. */
-export function castPresets(): ScenePreset[] {
-  return listCharacters().map((c) => ({
-    id: `cast-${c.id}`,
-    name: c.name,
-    note: c.tagline,
-    settings: scene(c.id),
-  }));
-}
-
-export function getPreset(id: string): ScenePreset | undefined {
-  return PRESETS.find((p) => p.id === id);
-}
+export const DEFAULT_PRESET = PRESETS[0];

@@ -1,8 +1,8 @@
+import { useId } from 'react';
 import type { CharacterColors, CharacterSettings, Emotion } from './types';
 import { DEFAULT_SETTINGS } from './types';
 import { samplePose, type ArmPose, type FootPose, type Point, type HandShape, type RigPose } from './gait';
 import { shade } from './color';
-import { stableId } from './id';
 import { Face, INK } from './parts/Face';
 import { HairBack, HairFront } from './parts/Hair';
 import { OUTFIT_META, Torso } from './parts/Outfit';
@@ -27,7 +27,6 @@ function Limb({
   width,
   color,
   highlight,
-  separation,
 }: {
   a: Point;
   b: Point;
@@ -35,26 +34,9 @@ function Limb({
   width: number;
   color: string;
   highlight?: string;
-  /**
-   * Soft contact shadow drawn under the limb. A near arm is the same colour as
-   * the garment it hangs against, so without this it visually fuses into the
-   * torso and the character reads as an armless blob.
-   */
-  separation?: boolean;
 }) {
   return (
     <g>
-      {separation && (
-        <path
-          d={`M ${a.x} ${a.y} L ${b.x} ${b.y} L ${c.x} ${c.y}`}
-          fill="none"
-          stroke={shade(color, -70)}
-          strokeWidth={width + 3.4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.22}
-        />
-      )}
       <path
         d={`M ${a.x} ${a.y} L ${b.x} ${b.y} L ${c.x} ${c.y}`}
         fill="none"
@@ -95,7 +77,7 @@ function Leg({ hip, foot, colors, far, pose }: { hip: Point; foot: FootPose; col
   const width = far ? p.legWidth - 2 : p.legWidth;
   return (
     <g data-leg={far ? 'far' : 'near'}>
-      <Limb a={hip} b={foot.knee} c={foot.ankle} width={width} color={pants} highlight={far ? undefined : shade(pants, 26)} separation={!far} />
+      <Limb a={hip} b={foot.knee} c={foot.ankle} width={width} color={pants} highlight={far ? undefined : shade(pants, 26)} />
       <circle cx={foot.ankle.x} cy={foot.ankle.y - 2} r={width * 0.41} fill={pants} />
       <Shoe foot={foot} colors={colors} far={far} scale={p.footScale} />
     </g>
@@ -151,7 +133,7 @@ function Arm({ arm, colors, settings, far, rig }: { arm: ArmPose; colors: Charac
             const cuff = lerpPt(arm.elbow, arm.wrist, 0.82);
             return (
               <>
-                <Limb a={arm.shoulder} b={arm.elbow} c={cuff} width={width} color={sleeve} highlight={far ? undefined : shade(sleeve, 24)} separation={!far} />
+                <Limb a={arm.shoulder} b={arm.elbow} c={cuff} width={width} color={sleeve} highlight={far ? undefined : shade(sleeve, 24)} />
                 <path d={`M ${cuff.x} ${cuff.y} L ${arm.wrist.x} ${arm.wrist.y}`} stroke={skin} strokeWidth={width * 0.5} strokeLinecap="round" />
                 <circle cx={cuff.x} cy={cuff.y} r={width * 0.46} fill={shade(sleeve, -18)} />
               </>
@@ -160,17 +142,6 @@ function Arm({ arm, colors, settings, far, rig }: { arm: ArmPose; colors: Charac
         </>
       ) : (
         <>
-          {!far && (
-            <path
-              d={`M ${arm.shoulder.x} ${arm.shoulder.y} L ${arm.elbow.x} ${arm.elbow.y} L ${arm.wrist.x} ${arm.wrist.y}`}
-              fill="none"
-              stroke={shade(skin, -70)}
-              strokeWidth={width * 0.74 + 3.4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.2}
-            />
-          )}
           <path
             d={`M ${arm.shoulder.x} ${arm.shoulder.y} L ${arm.elbow.x} ${arm.elbow.y} L ${arm.wrist.x} ${arm.wrist.y}`}
             fill="none"
@@ -183,9 +154,6 @@ function Arm({ arm, colors, settings, far, rig }: { arm: ArmPose; colors: Charac
             const cap = lerpPt(arm.shoulder, arm.elbow, 0.62);
             return (
               <>
-                {!far && (
-                  <path d={`M ${arm.shoulder.x} ${arm.shoulder.y} L ${cap.x} ${cap.y}`} stroke={shade(sleeve, -70)} strokeWidth={width + 3.4} strokeLinecap="round" opacity={0.22} />
-                )}
                 <path d={`M ${arm.shoulder.x} ${arm.shoulder.y} L ${cap.x} ${cap.y}`} stroke={sleeve} strokeWidth={width} strokeLinecap="round" />
                 <circle cx={cap.x} cy={cap.y} r={width * 0.5} fill={shade(sleeve, -14)} />
               </>
@@ -217,14 +185,8 @@ export interface CharacterHeadProps {
   className?: string;
 }
 
-/**
- * The head as a plain `<g>`, authored around a local origin near eye level.
- *
- * Use this when the head goes inside an existing `<svg>` (expression sheets,
- * avatars laid out on a canvas). Use {@link CharacterHead} when you want a
- * standalone, self-sizing SVG element.
- */
-export function CharacterHeadArt({
+/** Head-only SVG, for expression sheets, avatars and reaction shots. */
+export function CharacterHead({
   emotion = 'neutral',
   colors = DEFAULT_SETTINGS.colors,
   glasses = false,
@@ -236,23 +198,15 @@ export function CharacterHeadArt({
   hair = 'curly',
   cap = false,
   headphones = false,
-}: Omit<CharacterHeadProps, 'className'>) {
+  className,
+}: CharacterHeadProps) {
   return (
-    <g data-head={emotion}>
+    <svg viewBox="-66 -86 132 162" className={className} role="img" aria-label={`${emotion} expression`}>
       <HairBack style={hair} color={colors.hair} />
       <Face emotion={emotion} colors={colors} glasses={glasses} blink={blink} mouth={mouth} mouthOpen={mouthOpen} beard={beard} freckles={freckles} />
       <HairFront style={hair} color={colors.hair} />
       {cap && <Cap colors={colors} />}
       {headphones && <Headphones colors={colors} />}
-    </g>
-  );
-}
-
-/** Head-only SVG, for expression sheets, avatars and reaction shots. */
-export function CharacterHead({ className, ...rest }: CharacterHeadProps) {
-  return (
-    <svg viewBox="-66 -86 132 162" className={className} role="img" aria-label={`${rest.emotion ?? 'neutral'} expression`}>
-      <CharacterHeadArt {...rest} />
     </svg>
   );
 }
@@ -267,12 +221,11 @@ export function CharacterHead({ className, ...rest }: CharacterHeadProps) {
  * it with a transform.
  */
 export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30, showGuides = false }: CharacterRigProps) {
+  const uid = useId().replace(/:/g, '');
   const pose = samplePose(settings, frame, fps);
   const { colors } = settings;
   const p = pose.proportions;
-  // Hashed from the gradient's own stops: identical garments share one def,
-  // different garments can never collide, and the id is stable across renders.
-  const jacketId = stableId('garment', colors.jacket);
+  const jacketId = `garment-${uid}`;
   const s = pose.shoulder;
   const u = p.torsoLength / 87;
 
@@ -290,8 +243,8 @@ export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30,
       {settings.backpack && <Backpack pose={pose} colors={colors} />}
 
       <Arm arm={pose.arms[0]} colors={colors} settings={settings} far rig={pose} />
-      <Leg hip={pose.hips[0]} foot={pose.feet[0]} colors={colors} far pose={pose} />
-      <Leg hip={pose.hips[1]} foot={pose.feet[1]} colors={colors} pose={pose} />
+      <Leg hip={{ x: pose.hip.x - 7 * u, y: pose.hip.y }} foot={pose.feet[0]} colors={colors} far pose={pose} />
+      <Leg hip={{ x: pose.hip.x + 5 * u, y: pose.hip.y }} foot={pose.feet[1]} colors={colors} pose={pose} />
 
       {/* neck, behind the collar */}
       <path
@@ -309,7 +262,8 @@ export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30,
       {settings.scarf && <Scarf pose={pose} colors={colors} />}
 
       <g transform={`translate(${pose.head.x} ${pose.head.y}) rotate(${pose.headTilt}) scale(${p.headScale})`}>
-        <CharacterHeadArt
+        <HairBack style={settings.hair} color={colors.hair} />
+        <Face
           emotion={settings.emotion}
           colors={colors}
           glasses={settings.glasses}
@@ -318,10 +272,10 @@ export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30,
           mouthOpen={pose.mouthOpen}
           beard={settings.beard}
           freckles={settings.freckles}
-          hair={settings.hair}
-          cap={settings.cap}
-          headphones={settings.headphones}
         />
+        <HairFront style={settings.hair} color={colors.hair} />
+        {settings.cap && <Cap colors={colors} />}
+        {settings.headphones && <Headphones colors={colors} />}
       </g>
 
       <Arm arm={pose.arms[1]} colors={colors} settings={settings} rig={pose} />
@@ -331,7 +285,7 @@ export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30,
           <path d="M -90 0 L 90 0" strokeDasharray="4 4" />
           {pose.feet.map((f, i) => (
             <g key={i}>
-              <path d={`M ${pose.hips[i].x} ${pose.hips[i].y} L ${f.knee.x} ${f.knee.y} L ${f.ankle.x} ${f.ankle.y}`} />
+              <path d={`M ${pose.hip.x} ${pose.hip.y} L ${f.knee.x} ${f.knee.y} L ${f.ankle.x} ${f.ankle.y}`} />
               <circle cx={f.knee.x} cy={f.knee.y} r={4} fill={f.contact ? '#F26B38' : '#FFFDF6'} />
               <circle cx={f.ankle.x} cy={f.ankle.y} r={3} fill="#FFFDF6" />
             </g>

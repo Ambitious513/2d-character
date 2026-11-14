@@ -317,3 +317,16 @@ a { color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* ---- v2 studio additions: cast picker, pickers, dialogue, wrapped segments ---- */
+.segmented { flex-wrap: wrap; }
+.segmented button { flex: 1 1 auto; min-width: 62px; }
+.cast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+.cast-chip { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--paper); border-radius: 9px; padding: 7px 8px; font-size: 11px; font-weight: 700; color: var(--muted); transition: .15s; }
+.cast-chip:hover { color: var(--ink); border-color: var(--muted); }
+.cast-chip.active { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.cast-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex: none; }
+.picker-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; font-size: 12px; font-weight: 600; }
+.picker-row .select-wrap { flex: 1; max-width: 62%; }
+.dialogue-input { width: 100%; resize: vertical; min-height: 62px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); padding: 9px 10px; font: inherit; font-size: 12px; color: var(--ink); }
+.dialogue-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }

@@ -31,8 +31,8 @@ export type Emotion =
 export type TimeOfDay = 'day' | 'golden' | 'night';
 
 /**
- * @deprecated Renamed to {@link TimeOfDay} in v2. Kept as an alias so v1 code
- * and presets keep compiling.
+ * @deprecated v1 called the lighting pass `Environment`. Kept as an alias so
+ * older imports (`import type { Environment } from './rig/types'`) still work.
  */
 export type Environment = TimeOfDay;
 
@@ -54,7 +54,7 @@ export type Outfit = 'jacket' | 'hoodie' | 'dress' | 'tee' | 'coat' | 'overalls'
 /** Coarse body preset; each one maps to a set of proportion overrides. */
 export type Build = 'slim' | 'average' | 'broad' | 'petite' | 'child';
 
-export type ViewMode = 'scene' | 'character' | 'reference';
+export type ViewMode = 'scene' | 'character' | 'cast' | 'motion' | 'reference';
 
 export interface CharacterColors {
   skin: string;
