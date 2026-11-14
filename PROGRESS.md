@@ -9,44 +9,35 @@ repo is in, what was just done, and exactly where to continue.
 - **Repo:** `Ambitious513/2d-character`
 - **State:** ✅ green — re-verified 2026-11-15 from a clean clone: typecheck clean,
   **78/78 tests pass**, production build succeeds, `check:ids` 6/6 unique
-- **Commit:** the arrangement commit at the tip of `main` — committed locally, **NOT yet pushed** (see below)
+- **Commit:** `6d32d3f` — **pushed to `origin/main` on 2026-11-15.** GitHub now
+  serves real source; the tarballs are gone from the working tree.
 
-> ## ⚠️ Pushing is still blocked — BOTH supplied tokens are read-only
+> ## ✅ Push access resolved (2026-11-15)
 >
-> Two fine-grained PATs have now been supplied. Both authenticate as
-> `Ambitious513` with **admin** role on the repo, and both grant `contents:read`
-> but **not** `contents:write`. Re-verified 2026-11-15 with the second token:
+> The arrangement commit `6d32d3f` is **on GitHub**. `origin/main` was verified
+> after the push: root contains `PROGRESS.md`, `README.md`, `src/`, `tests/`,
+> `docs/` — and **no tarballs, no `uploads/`**. `package.json` reads `2.2.0`.
+>
+> **Why this took three sessions:** the first two tokens were fine-grained PATs
+> that authenticated as `Ambitious513` with **admin** role but granted only
+> `contents:read`. Every write failed identically:
 >
 > ```
-> GET  /repos/Ambitious513/2d-character                      -> 200 (admin)
-> GET  /repos/Ambitious513/2d-character/contents/package.json -> 200 (contents:read)
-> POST /repos/Ambitious513/2d-character/git/refs             -> 403
->      "Resource not accessible by personal access token"
+> POST /repos/Ambitious513/2d-character/git/refs -> 403
 >      x-accepted-github-permissions: contents=write
-> git push origin main -> remote: Permission to Ambitious513/2d-character.git denied
+> git push -> remote: Permission to Ambitious513/2d-character.git denied
 > ```
 >
-> The repo role is **admin**, so this is purely a *token scope* problem — not a
-> collaborator/branch-protection problem. Regenerating a fine-grained token
-> without ticking **Contents: Read and write** reproduces it exactly.
+> With no write access, each agent could only hand back an archive for manual
+> upload — which is exactly how `latest.gz` (`ef43ddf`) and `latest main.tar.gz`
+> (`d3ae613`) got committed instead of source. A **classic PAT with `repo` scope**
+> resolved it immediately.
 >
-> **Fix (one of):**
-> 1. GitHub → Settings → Developer settings → **Fine-grained tokens** → this
->    token → Repository permissions → **Contents: Read and write** → Save.
->    (Add **Workflows: Read and write** only if you will edit `.github/workflows/`.)
-> 2. Or create a **classic** PAT with the `repo` scope — works immediately.
->
-> Then, from this clone: `git push origin main`.
->
-> **This is why the work keeps arriving as tarballs.** With no write access, each
-> agent could only hand back an archive for manual upload — hence `latest.gz`
-> (`ef43ddf`) and `latest main.tar.gz` (`d3ae613`), and the
-> "Add files via upload" commits.
->
-> Until write access exists, the finished work is preserved as:
-> - the arrangement commit at the tip of `main` in this clone (`git log -1`)
-> - `handoff/stride-2.2.0-arranged.tar.gz` — clean tree, upload-ready
-> - `handoff/0001-*.patch` — apply with `git am` on a fresh clone
+> **For future sessions:** if `git push` returns 403 while `GET /repos/...`
+> returns 200, it is a *token scope* problem, not a repo/permission problem —
+> check `contents:write` (fine-grained) or use a classic `repo`-scoped token.
+> Do **not** fall back to committing a tarball; ask for a writable token instead.
+> Rotate any token that has been pasted into chat once the work is landed.
 
 ---
 
@@ -57,10 +48,10 @@ tarballs at the repo root (`latest.gz`, then `latest main.tar.gz`). That work ha
 now been **recovered, unpacked into real source files, verified, structured and
 documented**. Phase 4 is complete. The repo root no longer contains any tarball.
 
-The only thing outstanding is **pushing** — the token is read-only (see above).
+It is **pushed** — `origin/main` is `6d32d3f`. Nothing is half-finished and there
+is no broken code to repair.
 
 **Start Phase 5.** Best first task: visual-regression snapshots (see below).
-Nothing is half-finished; there is no broken code to repair.
 
 ---
 
@@ -126,6 +117,12 @@ npm ci --dry-run                 # clean — lockfile in sync
 ```
 
 Rendering is still unverified here for the same 1 GB RAM reason documented below.
+
+### Pushed
+
+`git push origin main` → `d3ae613..6d32d3f`. Remote tree re-read through the
+GitHub API to confirm the arrangement landed (no tarballs, no `uploads/`,
+`PROGRESS.md` and `src/rig/id.ts` present, version `2.2.0`).
 
 ---
 
