@@ -1,6 +1,6 @@
 {
   "name": "stride-character-kit",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "description": "Reusable, frame-deterministic 2D character library (cast, motions, lip-sync) and environments for Remotion, plus a live visual studio.",
@@ -23,7 +23,11 @@
     "scene-sheet": "tsx scripts/scene-sheet.tsx",
     "render:sheet": "remotion still src/remotion/index.ts CastSheet renders/cast-sheet.png --frame=30",
     "render:motions": "remotion still src/remotion/index.ts MotionSheet renders/motion-sheet.png --frame=45",
-    "preview:kit": "npm run contact-sheet && npm run scene-sheet"
+    "preview:kit": "npm run contact-sheet && npm run scene-sheet",
+    "render:alpha:prores": "remotion render src/remotion/index.ts CharacterOnly renders/character.mov --codec=prores --prores-profile=4444 --pixel-format=yuva444p10le --image-format=png",
+    "render:alpha:webm": "remotion render src/remotion/index.ts CharacterOnly renders/character.webm --codec=vp9 --pixel-format=yuva420p --image-format=png",
+    "check:ids": "tsx scripts/check-ids.tsx",
+    "check:env-ids": "tsx scripts/check-env-ids.tsx"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

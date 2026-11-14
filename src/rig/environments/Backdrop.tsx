@@ -1,5 +1,5 @@
-import { useId } from 'react';
 import { Repeating, offset } from './shared';
+import { stableId } from '../id';
 import { resolveEnvironment, type EnvironmentLayerProps } from './types';
 import type { TimeOfDay } from '../types';
 
@@ -16,10 +16,9 @@ const SWEEP: Record<TimeOfDay, { top: string; bottom: string; floor: string; mar
  */
 export function BackdropLayer(props: EnvironmentLayerProps) {
   const { distance, direction, px, timeOfDay } = resolveEnvironment(props);
-  const uid = useId().replace(/:/g, '');
   const s = SWEEP[timeOfDay] ?? SWEEP.day;
-  const sweepId = `bd-sweep-${uid}`;
-  const vignetteId = `bd-vig-${uid}`;
+  const sweepId = stableId('bd-sweep', s.top, s.bottom, s.floor);
+  const vignetteId = stableId('bd-vig', s.vignette, 0.28);
   const floorX = offset(distance, direction, 1);
 
   return (

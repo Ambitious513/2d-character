@@ -33,3 +33,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 yarn-error.log*
+
+# Agent recovery snapshots — never commit these (PROGRESS.md rule 6)
+handoff/
+recovered/
+*.tar.gz
+*.bundle

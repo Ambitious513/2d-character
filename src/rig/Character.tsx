@@ -1,8 +1,8 @@
-import { useId } from 'react';
 import type { CharacterColors, CharacterSettings, Emotion } from './types';
 import { DEFAULT_SETTINGS } from './types';
 import { samplePose, type ArmPose, type FootPose, type Point, type HandShape, type RigPose } from './gait';
 import { shade } from './color';
+import { stableId } from './id';
 import { Face, INK } from './parts/Face';
 import { HairBack, HairFront } from './parts/Hair';
 import { OUTFIT_META, Torso } from './parts/Outfit';
@@ -221,11 +221,12 @@ export function CharacterHead({
  * it with a transform.
  */
 export function CharacterRig({ settings = DEFAULT_SETTINGS, frame = 0, fps = 30, showGuides = false }: CharacterRigProps) {
-  const uid = useId().replace(/:/g, '');
   const pose = samplePose(settings, frame, fps);
   const { colors } = settings;
   const p = pose.proportions;
-  const jacketId = `garment-${uid}`;
+  // Content-hashed, NOT useId(): see ./id.ts. Two rigs rendered through separate
+  // React roots must not share a gradient id, or the first palette wins.
+  const jacketId = stableId('garment', shade(colors.jacket, 22), colors.jacket, shade(colors.jacket, -18));
   const s = pose.shoulder;
   const u = p.torsoLength / 87;
 

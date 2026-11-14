@@ -1,5 +1,5 @@
-import { useId } from 'react';
 import { paletteFor } from './palette';
+import { stableId } from '../id';
 import { Repeating, offset } from './shared';
 import { resolveEnvironment, type EnvironmentLayerProps } from './types';
 import type { TimeOfDay } from '../types';
@@ -72,11 +72,10 @@ function FloorLamp({ x, y, ink, glow, night }: { x: number; y: number; ink: stri
  */
 export function RoomLayer(props: EnvironmentLayerProps) {
   const { distance, direction, time, night, px, timeOfDay } = resolveEnvironment(props);
-  const uid = useId().replace(/:/g, '');
   const p = paletteFor(timeOfDay);
   const r = ROOM[timeOfDay] ?? ROOM.day;
-  const wallId = `room-wall-${uid}`;
-  const shaftId = `room-shaft-${uid}`;
+  const wallId = stableId('room-wall', r.wall, r.wallLow);
+  const shaftId = stableId('room-shaft', r.glow, night ? 0.12 : 0.5);
   const wallX = offset(distance, direction, 0.28 * px);
   const floorX = offset(distance, direction, 1);
   const sway = Math.sin(time * 0.6) * 2;

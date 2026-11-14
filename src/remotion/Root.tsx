@@ -1,6 +1,4 @@
 import { Composition, Folder } from 'remotion';
-import { z } from 'zod';
-import { zColor } from '@remotion/zod-types';
 import {
   WalkScene,
   CharacterOnly,
@@ -13,53 +11,18 @@ import {
   DialogueScene,
   DEFAULT_SCRIPT,
 } from './Compositions';
+import { CastCompositions } from './factories';
 import { DEFAULT_SETTINGS, type SceneSettings } from '../rig/types';
-import { castSceneSettings, listCharacters } from '../rig/cast';
+import { sceneSchema } from '../rig/schema';
 import { dialogueDuration } from '../rig/dialogue';
 import { FPS, DURATION, WIDTH, HEIGHT } from '../rig/gait';
 
 /**
- * Studio-editable schema. Every field maps 1:1 to `SceneSettings`, so the props
- * editor in Remotion Studio can drive the whole library without custom UI.
+ * The Studio-editable schema now lives in `rig/schema.ts` so preset validation
+ * and the props editor share one definition. Re-exported here because v2.0/v2.1
+ * hosts imported it from this module.
  */
-export const sceneSchema = z.object({
-  character: z.string(),
-  motion: z.enum(['walk', 'run', 'idle', 'wave', 'talk', 'jump', 'sit', 'point', 'think', 'dance']),
-  emotion: z.enum(['neutral', 'happy', 'focused', 'surprised', 'sad', 'angry', 'excited']),
-  speed: z.number().min(0.25).max(2),
-  stride: z.number().min(0.5).max(1.6),
-  bounce: z.number().min(0).max(1.5),
-  armSwing: z.number().min(0).max(1.5),
-  scale: z.number().min(0.4).max(2.5),
-  direction: z.union([z.literal(1), z.literal(-1)]),
-  colors: z.object({
-    skin: zColor(),
-    hair: zColor(),
-    jacket: zColor(),
-    pants: zColor(),
-    shoes: zColor(),
-    accent: zColor(),
-  }),
-  hair: z.enum(['curly', 'ponytail', 'fade', 'bob', 'bun', 'spiky', 'long', 'bald']),
-  outfit: z.enum(['jacket', 'hoodie', 'dress', 'tee', 'coat', 'overalls']),
-  build: z.enum(['slim', 'average', 'broad', 'petite', 'child']),
-  backpack: z.boolean(),
-  glasses: z.boolean(),
-  cap: z.boolean(),
-  scarf: z.boolean(),
-  headphones: z.boolean(),
-  beard: z.boolean(),
-  freckles: z.boolean(),
-  dialogue: z.string(),
-  speechRate: z.number().min(0.5).max(2),
-  seed: z.number(),
-  scene: z.enum(['street', 'park', 'room', 'backdrop']),
-  timeOfDay: z.enum(['day', 'golden', 'night']),
-  parallax: z.number().min(0).max(1),
-  guides: z.boolean(),
-  followCamera: z.boolean(),
-  showSubtitles: z.boolean(),
-});
+export { sceneSchema } from '../rig/schema';
 
 const defaults: SceneSettings = DEFAULT_SETTINGS;
 
@@ -86,21 +49,7 @@ export function RemotionRoot() {
         <Composition id="EmotionSheet" component={EmotionSheet} durationInFrames={180} fps={FPS} width={WIDTH} height={HEIGHT} defaultProps={defaults} />
       </Folder>
 
-      <Folder name="Cast">
-        {listCharacters().map((c) => (
-          <Composition
-            key={c.id}
-            id={`Walk-${c.name}`}
-            component={WalkScene}
-            durationInFrames={DURATION}
-            fps={FPS}
-            width={WIDTH}
-            height={HEIGHT}
-            defaultProps={castSceneSettings(c.id, { motion: 'walk', scene: 'street' })}
-            schema={sceneSchema}
-          />
-        ))}
-      </Folder>
+      <Folder name="Cast">{CastCompositions()}</Folder>
     </>
   );
 }

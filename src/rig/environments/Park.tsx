@@ -1,5 +1,5 @@
-import { useId } from 'react';
 import { paletteFor } from './palette';
+import { stableId } from '../id';
 import { Cloud, Repeating, Tree, offset } from './shared';
 import { resolveEnvironment, type EnvironmentLayerProps } from './types';
 
@@ -53,10 +53,9 @@ function ParkLamp({ x, ink, night }: { x: number; ink: string; night: boolean })
  */
 export function ParkLayer(props: EnvironmentLayerProps) {
   const { distance, direction, time, night, px, timeOfDay } = resolveEnvironment(props);
-  const uid = useId().replace(/:/g, '');
   const p = paletteFor(timeOfDay);
-  const skyId = `park-sky-${uid}`;
-  const pondId = `park-pond-${uid}`;
+  const skyId = stableId('park-sky', p.skyTop, p.skyBottom);
+  const pondId = stableId('park-pond', p.window, p.skyBottom);
   const hillX = offset(distance, direction, 0.1 * px);
   const treeX = offset(distance, direction, 0.3 * px);
   const midX = offset(distance, direction, 0.55 + 0.35 * px);

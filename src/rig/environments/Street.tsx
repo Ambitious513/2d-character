@@ -1,5 +1,5 @@
-import { useId } from 'react';
 import { paletteFor, type Palette } from './palette';
+import { stableId } from '../id';
 import { Repeating, Tree, Cloud, offset } from './shared';
 import type { EnvironmentLayerProps } from './types';
 
@@ -93,11 +93,10 @@ function Bench({ x, p }: { x: number; p: Palette }) {
  */
 export function StreetLayer({ distance = 0, direction = 1, timeOfDay, environment, parallax = 0.7, time = 0 }: EnvironmentLayerProps) {
   const tod = timeOfDay ?? environment ?? 'day';
-  const uid = useId().replace(/:/g, '');
   const p = paletteFor(tod);
   const night = tod === 'night';
   const px = Math.max(0, Math.min(1, parallax));
-  const skyId = `sky-${uid}`;
+  const skyId = stableId('sky', p.skyTop, p.skyBottom);
   const farX = offset(distance, direction, 0.12 * px);
   const treeX = offset(distance, direction, 0.32 * px);
   const shopX = offset(distance, direction, 0.55 + 0.45 * px);
