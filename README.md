@@ -1,5 +1,7 @@
 # Stride — 2D character & environment kit for Remotion
 
+[![CI](https://github.com/Ambitious513/2d-character/actions/workflows/ci.yml/badge.svg)](https://github.com/Ambitious513/2d-character/actions/workflows/ci.yml)
+
 A reusable, **frame-deterministic** 2D character rig and environment library you
 can drop into any [Remotion](https://remotion.dev) project — plus a live visual
 studio for designing shots without writing code.

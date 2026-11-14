@@ -10,8 +10,9 @@ repo is in, what was just done, and exactly where to continue.
 - **State:** ✅ green — re-verified 2026-11-15 from a clean clone of GitHub:
   typecheck clean, **78/78 tests pass**, build succeeds, `check:ids` 6/6 unique,
   **browser smoke test passes** (desktop + mobile)
-- **Commit:** `6d32d3f` — **pushed to `origin/main` on 2026-11-15.** GitHub now
-  serves real source; the tarballs are gone from the working tree.
+- **Commits pushed to `origin/main` (2026-11-15):** `6d32d3f` arrangement →
+  `a49d9c7` handoff update → `73cce7b` CI fix. GitHub serves real source; the
+  tarballs are gone. **CI: both jobs green.**
 
 > ## ✅ Push access resolved (2026-11-15)
 >
@@ -141,6 +142,11 @@ presets, export, secondary views.` with zero console/page errors.
 
 Only test selectors changed — no application code was touched, and no assertion
 was weakened or skipped.
+
+**Confirmed on GitHub:** run
+[`43622127107`](https://github.com/Ambitious513/2d-character/actions/runs/43622127107)
+on `73cce7b` — `Typecheck, test, build` ✅ and `Studio browser smoke test` ✅.
+This is the first fully green CI run since `e301ed1`.
 
 ### Pushed
 
