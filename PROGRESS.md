@@ -7,13 +7,14 @@ repo is in, what was just done, and exactly where to continue.
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — Phase 5 work verified locally: typecheck clean,
-  **81/81 tests pass**, build succeeds, `check:ids` 6/6 unique,
-  `check:env-ids` all unique, visual goldens byte-stable, kit ZIP regenerated
-  from the current tree. **Not pushed yet** (see the Phase 5 section below).
-- **Commits pushed to `origin/main` (2026-11-15):** `6d32d3f` arrangement →
-  `a49d9c7` handoff update → `73cce7b` CI fix. GitHub serves real source; the
-  tarballs are gone. **CI: both jobs green.**
+- **State:** ✅ green — Phase 5 pushed (`d2e8376`) and **CI run #9 fully green**,
+  including the new `render-smoke` job: typecheck clean, **81/81 tests pass**,
+  build succeeds, `check:ids` 6/6 unique, `check:env-ids` all unique, visual
+  goldens byte-stable, kit ZIP regenerated from the current tree, and a real
+  Remotion render of 10 PNG frames on `ubuntu-latest`.
+- **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
+  handoff update → `73cce7b` CI fix → **`d2e8376` Phase 5 (2026-11-14, CI run
+  43636701309 green)**. GitHub serves real source; the tarballs are gone.
 
 > ## ✅ Push access resolved (2026-11-15)
 >
@@ -97,8 +98,10 @@ tests + build), `npm run check:ids` (6/6 unique) and `npm run check:env-ids`
   Playwright's Chromium (same mechanism as the studio smoke job), renders
   `CharacterOnly` frames 0–9 as a PNG sequence to `renders/ci-test`, and fails
   unless exactly 10 `.png` files are written.
-- **Not executed here** — this sandbox is hard-capped at 1 GB RAM and Remotion
-  gets OOM-killed. The human should watch the first PR run.
+- **First real run green (2026-11-14, CI run 43636701309):** `render-smoke`
+  completed successfully on `ubuntu-latest` — bundle, Chromium launch and the
+  10-frame PNG render all worked with the Playwright-browser trick. Local
+  Remotion renders are still unnecessary; the CI job is the render check.
 
 ### 4. Keyboard-first studio UX
 
@@ -343,9 +346,10 @@ Status after the 2026-11-14 session (details in the Phase 5 section above):
 1. ~~**Visual-regression snapshots.**~~ **Done** — `tests/visual.test.tsx` +
    `tests/visual-goldens.tsx` + `tests/__golden__/visual-hashes.json`
    (48 entries, byte-idempotent generator).
-2. ~~**CI render job.**~~ **Drafted** — `render-smoke` job added to
+2. ~~**CI render job.**~~ **Done & verified** — `render-smoke` job in
    `.github/workflows/ci.yml` (`needs: verify`, renders 10 PNG frames and
-   asserts the count). **Unverified by an actual run**; check the first PR.
+   asserts the count). **First run green:** CI run 43636701309 (commit `d2e8376`)
+   completed all three jobs, render included.
 3. ~~**Refresh `public/stride-remotion-kit.zip`.**~~ **Done** — regenerated from
    the current tree by `npm run kit:zip`, with `tests/kit-zip.test.ts` guarding
    it.
