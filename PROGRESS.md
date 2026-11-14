@@ -57,11 +57,52 @@ including **48 visual golden hashes**.
 
 Do **not** redo those Phase 5 items. The remaining roadmap work is:
 
-1. **Docs site** with live `<Player>` examples.
+1. **Docs site** with live `<Player>` examples — **in progress, staged and
+   pushed**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table; Stage 1
+   (routing + shell + live hero) is on `main`.
 2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
+
+---
+
+## Docs site build (2026-11-15) — staged, pushed per stage
+
+Scope is **only** the docs site with live `<Player>` examples. No weather, no
+npm publish, no v1 shim removal, no render-path changes. The full plan and the
+live stage table live in **`docs/DOCS_SITE_PLAN.md` §0** — read that before
+continuing so a stage is never redone.
+
+**Stage 1 — routing + docs shell (this commit).**
+
+> Recovered and landed: the previous session finished Stage 1 but was cut off
+> before it could push, and handed back `DOC_SITE_IN_PROGRESS.tar.gz`. That
+> archive was unpacked, diffed against `main`, and **only the finished Stage 1
+> work** was committed here as real source. The archive itself is deleted in
+> this commit — rule 6 below still holds: never commit a tarball.
+
+- `#/docs` and `#/docs/<section>` now render a lazily loaded docs site; `/` and
+  `#/studio` still render the untouched studio. Hash routing means no server
+  rewrites are needed in dev, preview or static hosting.
+- New `src/docs/`: `DocsSite.tsx` (shell, numbered nav + scrollspy, hero,
+  quickstart, export, architecture, footer, toasts), `DocsPlayer.tsx` (real
+  Remotion `<Player>` with a Stride transport), `CodeBlock.tsx`, `snippets.ts`,
+  `parts.tsx`, `docs.css`.
+- The hero is a **live `WalkScene`**, not a video: Ada, run cycle, street at
+  golden hour, autoplaying with reduced-motion opt-out.
+- Docs UI is an app consumer like `src/ui` and is **not** exported from
+  `src/index.ts`.
+- Studio change is one nav link (`src/App.tsx`) plus its styling.
+
+Verification: typecheck clean, **81/81 tests**, production build succeeds
+(docs split into its own ~118 kB chunk), existing `npm run smoke` still passes,
+and a Playwright pass on the docs route confirmed autoplay/pause, scrollspy,
+deep links, copy toast, back-to-studio and zero mobile horizontal overflow at
+390×844 with no console or page errors.
+
+Still open in this stage plan: playground (Stage 2), explorers + presets
+(Stage 3), docs smoke + CI + handoff docs + kit ZIP (Stage 4).
 
 ---
 

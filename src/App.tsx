@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Player, type PlayerRef } from '@remotion/player';
-import { Activity, ArrowRight, Check, Download, Film, Footprints, Image, Layers, RotateCcw, Save, Shuffle, Sparkles, Users, X } from 'lucide-react';
+import { Activity, ArrowRight, BookOpen, Check, Download, Film, Footprints, Image, Layers, RotateCcw, Save, Shuffle, Sparkles, Users, X } from 'lucide-react';
 import { WalkScene, CharacterOnly, CastSheet, MotionSheet } from './remotion/Compositions';
 import { CharacterHead } from './rig/Character';
 import { DEFAULT_SETTINGS, EMOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY, type SceneSettings, type ViewMode } from './rig/types';
@@ -227,6 +227,7 @@ export default function App() {
           <button className={nav === 'studio' ? 'active' : ''} onClick={() => setNav('studio')}><Film size={15} />Studio</button>
           <button className={nav === 'components' ? 'active' : ''} onClick={() => setNav('components')}><Layers size={15} />Components</button>
           <button className={nav === 'guide' ? 'active' : ''} onClick={() => setNav('guide')}><Sparkles size={15} />Remotion guide</button>
+          <a className="nav-docs-link" href="#/docs"><BookOpen size={15} />Docs</a>
         </nav>
         <div className="top-actions">
           <span className="remotion-badge"><i />Remotion-ready</span>

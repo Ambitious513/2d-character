@@ -6,6 +6,43 @@
 
 ---
 
+## 0. Live stage status — read this first
+
+**Update this table in the same commit that finishes a stage.** Every stage is
+pushed on its own; nothing is held back until the end.
+
+| Stage | Scope | State | Commit on `main` |
+| --- | --- | --- | --- |
+| 0 | Plan pushed before any implementation code | ✅ done | `43d5e9a` |
+| 1 | Hash routing, docs shell + scrollspy, hero, quickstart, export, architecture, footer, studio Docs link. `DocsPlayer`, `CodeBlock`, `snippets.ts`, `parts.tsx`, `docs.css` landed here because the hero is a live Player. | ✅ done & pushed | this commit |
+| 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ⬜ next | — |
+| 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | ⬜ | — |
+| 4 | `scripts/docs-smoke.mjs`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ⬜ | — |
+
+### What Stage 1 actually shipped
+
+- `src/main.tsx` — hash router: `/` and `#/studio` render the studio, `#/docs*`
+  lazily loads `src/docs/DocsSite.tsx` (separate ~118 kB chunk).
+- `src/docs/DocsSite.tsx` — fixed topbar, numbered nav with scrollspy
+  (`IntersectionObserver`), deep links `#/docs/<section>`, hero, quickstart,
+  export, architecture, footer, toast host (`role="status"`).
+- `src/docs/DocsPlayer.tsx` — real `<Player>` + Stride transport (restart,
+  play/pause, scrubber, frame readout), error fallback, reduced-motion autoplay
+  opt-out, `numberOfSharedAudioTags={0}`.
+- `src/docs/CodeBlock.tsx`, `src/docs/snippets.ts`, `src/docs/parts.tsx`,
+  `src/docs/docs.css`.
+- `src/App.tsx` + `src/styles.css` — a Docs link in the studio topbar only.
+
+Verified for Stage 1: `npm run typecheck`, `npm test` (81/81), `npm run build`,
+`npm run smoke` (existing studio, desktop + mobile) all green locally, plus a
+manual Playwright pass on `#/docs`: hero Player autoplays and pauses, nav deep
+links + scrollspy work, copy toast fires, back-to-studio works, mobile 390×844
+has zero horizontal overflow and no console/page errors.
+
+**Resume rule:** continue at the first ⬜ row. Do not re-do a ✅ row.
+
+---
+
 ## 1. Goal
 
 Ship a polished, production-ready documentation site inside the existing Vite app that:
