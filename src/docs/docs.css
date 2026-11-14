@@ -508,6 +508,13 @@
 }
 .docs-code pre:focus-visible { outline: 2px solid var(--butter); outline-offset: -2px; }
 .docs-code code { font: inherit; white-space: pre; }
+/* The shared palette scrollbar is paper-on-sage; a slate code block needs the
+   dark variant so the track does not read as a light strip inside the block. */
+.docs-code pre { scrollbar-color: #4A5A50 #212B25; }
+.docs-code pre::-webkit-scrollbar { width: 8px; height: 8px; }
+.docs-code pre::-webkit-scrollbar-track { background: #212B25; border-radius: 99px; }
+.docs-code pre::-webkit-scrollbar-thumb { background: #4A5A50; border: 2px solid #212B25; border-radius: 99px; }
+.docs-code pre::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 .docs-code.small pre { font-size: 11.5px; padding: 12px 14px; }
 
 /* ---------------------------------------------------------------- */
@@ -753,6 +760,29 @@
 .pg-color input[type='color']::-webkit-color-swatch-wrapper { padding: 2px; }
 .pg-color input[type='color']::-webkit-color-swatch { border: 0; border-radius: 6px; }
 .pg-color code { font-family: var(--d-mono); font-size: 9.5px; color: var(--muted); margin-left: auto; }
+
+/* Accessory chips: compact multi-select, aria-pressed carries the state. */
+.pg-toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.pg-toggle {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 99px;
+  transition: .15s;
+}
+.pg-toggle:hover { border-color: var(--sage); color: var(--ink); }
+.pg-toggle[aria-pressed='true'] { background: var(--forest); border-color: var(--forest); color: #FFFDF6; }
+
+/* Helper text under a control — explains what a prop actually does. */
+.pg-hint { margin: 0; font-size: 10.5px; line-height: 1.5; color: var(--muted); }
+.pg-hint b { color: var(--accent-deep); }
+.pg-hint code { font-family: var(--d-mono); font-size: 10px; color: var(--accent-deep); }
+
+.pg-stage-bar .pg-seg { flex: none; }
+.pg-stage-bar .pg-seg button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; }
 
 .pg-actions {
   display: flex;

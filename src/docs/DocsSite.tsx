@@ -24,6 +24,7 @@ import {
   Lightbulb,
   Rocket,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   TriangleAlert,
 } from 'lucide-react';
@@ -38,8 +39,10 @@ import {
   castSceneSettings,
   listCharacters,
 } from '../index';
+import type { SceneSettings } from '../index';
 import { DocsPlayer } from './DocsPlayer';
 import { CodeBlock } from './CodeBlock';
+import { Playground, PLAYGROUND_DEFAULT, type PlaygroundView } from './Playground';
 import { Chip, FrameRuler, Note, SectionHead } from './parts';
 import { ARCHITECTURE_SNIPPET, EXPORT_RECIPES, QUICKSTART } from './snippets';
 import './docs.css';
@@ -55,9 +58,17 @@ interface SectionDef {
 const SECTIONS: SectionDef[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
+  { id: 'playground', label: 'Playground' },
   { id: 'export', label: 'Export' },
   { id: 'architecture', label: 'Architecture' },
 ];
+
+/**
+ * Section numbers come from the nav order, never from a hand-written literal,
+ * so inserting a section cannot leave the page numbered out of sequence.
+ */
+const numOf = (id: string): string =>
+  String(SECTIONS.findIndex((s) => s.id === id) + 1).padStart(2, '0');
 
 const sectionFromHash = (): string | null => {
   const match = /^#\/docs\/([a-z-]+)/.exec(window.location.hash);
@@ -123,6 +134,31 @@ export default function DocsSite() {
     return () => observer.disconnect();
   }, []);
 
+  /**
+   * Playground state lives here, not inside `Playground`, so other sections
+   * (the preset panel) can load a look into it and scroll the visitor there.
+   */
+  const [pgSettings, setPgSettings] = useState<SceneSettings>(() => ({
+    ...PLAYGROUND_DEFAULT,
+    colors: { ...PLAYGROUND_DEFAULT.colors },
+  }));
+  const [pgView, setPgView] = useState<PlaygroundView>('scene');
+  const [pgPreset, setPgPreset] = useState('Morning stroll');
+
+  const updatePg = useCallback((patch: Partial<SceneSettings>) => {
+    setPgSettings((s) => ({
+      ...s,
+      ...patch,
+      colors: patch.colors ? { ...s.colors, ...patch.colors } : s.colors,
+    }));
+    setPgPreset('Custom');
+  }, []);
+
+  const replacePg = useCallback((settings: SceneSettings, presetName: string) => {
+    setPgSettings({ ...settings, colors: { ...settings.colors } });
+    setPgPreset(presetName);
+  }, []);
+
   const cast = listCharacters();
 
   return (
@@ -166,6 +202,15 @@ export default function DocsSite() {
       <main className="docs-main">
         <Overview />
         <Quickstart onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')} />
+        <Playground
+          settings={pgSettings}
+          view={pgView}
+          presetName={pgPreset}
+          onViewChange={setPgView}
+          update={updatePg}
+          replace={replacePg}
+          notify={notify}
+        />
         <Export />
         <Architecture castCount={cast.length} />
 
@@ -234,7 +279,11 @@ function Overview() {
           lip-sync — and the same settings plus the same frame always produce the same SVG.
         </p>
         <div className="hero-cta">
-          <a className="docs-btn accent" href="#/docs/quickstart">
+          <a className="docs-btn accent" href="#/docs/playground">
+            <SlidersHorizontal size={15} />
+            Open playground
+          </a>
+          <a className="docs-btn ghost" href="#/docs/quickstart">
             <Rocket size={15} />
             Quickstart
           </a>
@@ -352,7 +401,7 @@ function Quickstart({ onCopied }: { onCopied: (ok: boolean) => void }) {
   return (
     <section className="docs-section" id="docs-quickstart">
       <SectionHead
-        index="02"
+        index={numOf('quickstart')}
         eyebrow="Quickstart"
         title={<>From zero to a <span>walking character</span> in five steps.</>}
         lede="No build step, no asset pipeline, no sprite sheets. Copy the source, register a composition, render."
@@ -383,7 +432,7 @@ function Export() {
   return (
     <section className="docs-section" id="docs-export">
       <SectionHead
-        index="03"
+        index={numOf('export')}
         eyebrow="Export"
         title={<>Four recipes, one <span>alpha gotcha</span>.</>}
         lede="CharacterOnly is a transparent plate. Whether the alpha survives is decided entirely by the codec, pixel format and image format you render with."
@@ -442,7 +491,7 @@ function Architecture({ castCount }: { castCount: number }) {
   return (
     <section className="docs-section" id="docs-architecture">
       <SectionHead
-        index="04"
+        index={numOf('architecture')}
         eyebrow="Architecture"
         title={<>Determinism is the <span>whole product</span>.</>}
         lede="A render is split across processes and machines. If any part of the drawing depends on wall-clock time, random numbers or React identity, frames stop matching. Stride is built so that cannot happen."

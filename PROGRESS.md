@@ -59,7 +59,8 @@ Do **not** redo those Phase 5 items. The remaining roadmap work is:
 
 1. **Docs site** with live `<Player>` examples — **in progress, staged and
    pushed**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table; Stage 1
-   (routing + shell + live hero) is on `main`.
+   (routing + shell + live hero, CI green) and Stage 2 (live playground) are on
+   `main`. Next: Stage 3, the example explorers and preset panel.
 2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
@@ -101,8 +102,31 @@ and a Playwright pass on the docs route confirmed autoplay/pause, scrollspy,
 deep links, copy toast, back-to-studio and zero mobile horizontal overflow at
 390×844 with no console or page errors.
 
-Still open in this stage plan: playground (Stage 2), explorers + presets
-(Stage 3), docs smoke + CI + handoff docs + kit ZIP (Stage 4).
+**Stage 2 — the live playground (`73a58db` → this commit).**
+
+- `src/docs/Playground.tsx`: sticky live Player + a permanently visible control
+  region with **26 live controls** across six groups (cast & performance, motion
+  tuning, scene & camera, speech, look, palette), plus Reset / Randomize /
+  Copy props / Download preset. Every control writes into the Player's
+  `inputProps` immediately.
+- Scene ↔ alpha plate switch (`WalkScene` 1280×720 ↔ `CharacterOnly` 720×720 on a
+  checkerboard), a live generated snippet, and a real v2 preset download via
+  `serializePresetJSON`.
+- The dialogue field reports derived lip-sync frames from `speechFrames`, so the
+  docs demonstrate the speech API rather than just describing it.
+- Playground state is owned by `DocsSite` so Stage 3's preset panel can load into
+  it. Section numbers are derived from nav order.
+- Randomize is UI-side only; no non-determinism entered the render path.
+
+Verification: typecheck clean, **81/81 tests**, build succeeds, existing studio
+smoke passes, and a 35-assertion Playwright pass on the playground — every
+control, keyboard slider use, the alpha switch, all four actions including
+parsing the downloaded JSON, reset fidelity, and mobile 390×844 with zero
+horizontal overflow and no console/page errors. Stage 1's CI run
+(43653395037) is green across `verify`, `browser-smoke` and `render-smoke`.
+
+Still open in this stage plan: explorers + presets (Stage 3), docs smoke + CI +
+handoff docs + kit ZIP (Stage 4).
 
 ---
 
