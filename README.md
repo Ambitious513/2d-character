@@ -141,8 +141,8 @@ src/
     parts/        ← face, hair, outfit, accessories
   remotion/       ← compositions, typed factories, Studio root
   ui/             ← visual studio (NOT part of the library)
-tests/            ← determinism, IK, foot-lock, lip-sync, SVG ids, packaging
-scripts/          ← contact sheets, smoke test, id diagnostics
+tests/            ← determinism, IK, foot-lock, lip-sync, SVG ids, packaging, visual goldens, kit ZIP
+scripts/          ← contact sheets, smoke test, id diagnostics, golden + ZIP generators
 docs/             ← architecture, roadmap, export recipes
 ```
 
@@ -160,13 +160,26 @@ Deeper map: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 ## Checks
 
 ```bash
-npm run typecheck     # tsc -b
-npm test              # 78 unit tests
-npm run build         # production build
-npm run verify        # all three
-npm run check:ids     # gradient-id collision diagnostic
-npm run check:env-ids # per-scene lighting gradient diagnostic
+npm run typecheck            # tsc -b
+npm test                     # 81 unit + visual-regression tests
+npm run build                # production build
+npm run verify               # all three
+npm run check:ids            # gradient-id collision diagnostic
+npm run check:env-ids        # per-scene lighting gradient diagnostic
+npm run update:visual-goldens # regenerate tests/__golden__ after an intended visual change
+npm run kit:zip              # regenerate public/stride-remotion-kit.zip from source
 ```
+
+### Keyboard shortcuts
+
+When the studio has focus (and no input or modal is active):
+
+| Keys | Action |
+| --- | --- |
+| `←` / `→` | step one frame (`Shift` = ten frames) |
+| `Space` | play / pause |
+| `1`–`6` | select that cast member |
+| `W` / `I` / `R` | walk / idle / run |
 
 ## License
 

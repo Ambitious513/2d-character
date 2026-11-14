@@ -3,13 +3,14 @@
 **Read this first if you are picking this project up.** It records what state the
 repo is in, what was just done, and exactly where to continue.
 
-- **Last updated:** 2026-11-15
+- **Last updated:** 2026-11-14
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — re-verified 2026-11-15 from a clean clone of GitHub:
-  typecheck clean, **78/78 tests pass**, build succeeds, `check:ids` 6/6 unique,
-  **browser smoke test passes** (desktop + mobile)
+- **State:** ✅ green — Phase 5 work verified locally: typecheck clean,
+  **81/81 tests pass**, build succeeds, `check:ids` 6/6 unique,
+  `check:env-ids` all unique, visual goldens byte-stable, kit ZIP regenerated
+  from the current tree. **Not pushed yet** (see the Phase 5 section below).
 - **Commits pushed to `origin/main` (2026-11-15):** `6d32d3f` arrangement →
   `a49d9c7` handoff update → `73cce7b` CI fix. GitHub serves real source; the
   tarballs are gone. **CI: both jobs green.**
@@ -53,7 +54,59 @@ documented**. Phase 4 is complete. The repo root no longer contains any tarball.
 It is **pushed** — `origin/main` is `6d32d3f`. Nothing is half-finished and there
 is no broken code to repair.
 
-**Start Phase 5.** Best first task: visual-regression snapshots (see below).
+**Phase 5 is underway.** Visual snapshots, the CI render job, the kit ZIP and
+keyboard shortcuts are done and verified locally — details below.
+
+---
+
+## What this session did (2026-11-14) — Phase 5
+
+All four Phase 5 tasks, verified with `npm run verify` (typecheck + **81/81**
+tests + build), `npm run check:ids` (6/6 unique) and `npm run check:env-ids`
+(all unique).
+
+### 1. Visual-regression snapshots (highest priority)
+
+- `tests/visual-goldens.tsx` — the shared matrix: 6 cast × {idle, walk, run} ×
+  {neutral, happy} at frame 60, plus 4 scenes × {day, golden, night}, rendered
+  with `renderToStaticMarkup` and SHA-256 hashed.
+- `tests/visual.test.tsx` — asserts every hash against
+  `tests/__golden__/visual-hashes.json` (48 entries), plus a well-formedness
+  guard (right `data-character`, own jacket colour, no `NaN`/`undefined`).
+- `scripts/update-visual-goldens.ts` (`npm run update:visual-goldens`) —
+  regenerates the goldens after an *intentional* visual change.
+- Goldens are byte-idempotent: running the generator twice produces the same
+  file hash. No browser, no RAM ceiling.
+
+### 2. Fresh `public/stride-remotion-kit.zip`
+
+- `scripts/generate-kit-zip.ts` (`npm run kit:zip`) zips the **current working
+  tree** (git-tracked + untracked-but-not-ignored, so new files are included)
+  into a deterministic archive (sorted paths, fixed mtime). 69 files, ~190 KB.
+- The old ZIP was a v1.0.0 pre-restructure snapshot; it now contains
+  `src/index.ts`, `src/rig/id.ts`, the environments, tests and docs at 2.2.0.
+- `tests/kit-zip.test.ts` opens the archive and asserts `package.json` matches
+  the one on disk, required files exist, no path traversal, and no
+  `node_modules`/`.git`/`renders`/self-reference.
+- `package.json` gained a `_releaseChecklist` reminder to rerun `kit:zip`
+  before a release.
+
+### 3. CI render job
+
+- `.github/workflows/ci.yml` gained `render-smoke` (`needs: verify`): installs
+  Playwright's Chromium (same mechanism as the studio smoke job), renders
+  `CharacterOnly` frames 0–9 as a PNG sequence to `renders/ci-test`, and fails
+  unless exactly 10 `.png` files are written.
+- **Not executed here** — this sandbox is hard-capped at 1 GB RAM and Remotion
+  gets OOM-killed. The human should watch the first PR run.
+
+### 4. Keyboard-first studio UX
+
+- `src/ui/Controls.tsx` exports `useStudioHotkeys`, a single global listener:
+  ←/→ step (±10 with Shift), Space play/pause, 1–6 select cast, W/I/R set
+  walk/idle/run. Ignored while a form control or modal has focus.
+- `src/App.tsx` now uses it and its old inline Arrow/Space handler is gone, so
+  no key is handled twice.
 
 ---
 
@@ -228,7 +281,9 @@ npm run verify      # typecheck + 78 tests + build — ALL GREEN
 | `tests/svg-ids.test.tsx` | 14 | gradient-id collisions across React roots |
 | `tests/packaging.test.tsx` | 28 | barrel, preset envelope + v1 migration, factories |
 | `tests/export-recipes.test.ts` | 6 | alpha recipes stay valid |
-| **total** | **78** | |
+| `tests/visual.test.tsx` | 2 | 48 golden hashes (cast × motion × emotion, scene × lighting) |
+| `tests/kit-zip.test.ts` | 1 | the downloadable ZIP is the current source tree |
+| **total** | **81** | |
 
 ### ⚠️ What could NOT be verified here
 
@@ -283,25 +338,22 @@ byte-stable) in `<svg>` — leave the fragment-contract assertion alone.
 
 ## Where to continue — Phase 5
 
-In recommended order:
+Status after the 2026-11-14 session (details in the Phase 5 section above):
 
-1. **Visual-regression snapshots (highest value).** The rig is byte-deterministic,
-   so `renderToStaticMarkup(CharacterRig)` snapshots are cheap, need no browser,
-   and would catch *drawing* regressions that the current unit tests miss. Suggest
-   `tests/visual.test.tsx` covering each cast member × motion × emotion at a few
-   fixed frames, plus each scene × lighting pass. Store hashes or golden SVG under
-   `tests/__golden__/`. **This is the natural next step and unblocks safe refactor.**
-2. **CI render job.** `.github/workflows/ci.yml` runs typecheck/test/build plus a
-   Playwright studio smoke test — **both jobs green as of 2026-11-15** (the smoke
-   selectors were repaired this session). Add a short alpha render on PR (GitHub
-   runners have ~7 GB, so the memory problem above does not apply). Assert the
-   output exists and has alpha.
-3. **Refresh `public/stride-remotion-kit.zip`.** The studio's "Download project ZIP"
-   button (`src/ui/Dialogs.tsx:47`) serves a **stale 86 KB pre-restructure
-   snapshot**. Either regenerate it from current source via a script, or replace
-   the button with a generated-on-demand download. Left alone this session because
-   the file is user-facing and referenced.
-4. **Keyboard-first studio UX** — shortcuts for cycling motion/emotion, frame stepping.
+1. ~~**Visual-regression snapshots.**~~ **Done** — `tests/visual.test.tsx` +
+   `tests/visual-goldens.tsx` + `tests/__golden__/visual-hashes.json`
+   (48 entries, byte-idempotent generator).
+2. ~~**CI render job.**~~ **Drafted** — `render-smoke` job added to
+   `.github/workflows/ci.yml` (`needs: verify`, renders 10 PNG frames and
+   asserts the count). **Unverified by an actual run**; check the first PR.
+3. ~~**Refresh `public/stride-remotion-kit.zip`.**~~ **Done** — regenerated from
+   the current tree by `npm run kit:zip`, with `tests/kit-zip.test.ts` guarding
+   it.
+4. ~~**Keyboard-first studio UX.**~~ **Done** — `useStudioHotkeys` in
+   `src/ui/Controls.tsx`, wired in `src/App.tsx`.
+
+Still open, in recommended order:
+
 5. **Docs site** with live `<Player>` examples.
 6. **Weather** (`rain`/`snow`/`fog`) — the one deferred Phase 3 item. No `weather`
    field exists yet; would need `types.ts` → `schema.ts` → palettes → inspector.

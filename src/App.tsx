@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, EMOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES
 import { PRESETS } from './rig/presets';
 import { castSceneSettings, getCharacter, listCharacters } from './rig/cast';
 import { DURATION, FPS, HEIGHT, WIDTH, motionLabel } from './rig/gait';
-import { Inspector, type Preset, type ReferenceImage } from './ui/Controls';
+import { Inspector, useStudioHotkeys, type Preset, type ReferenceImage } from './ui/Controls';
 import { Timeline } from './ui/Timeline';
 import { ExportDialog, SaveDialog } from './ui/Dialogs';
 import { ComponentsView, GuideView } from './ui/Views';
@@ -108,18 +108,6 @@ export default function App() {
     seek((playerRef.current?.getCurrentFrame() ?? frame) + d);
   }, [frame, seek]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName) || modal) return;
-      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-      if (e.code === 'ArrowLeft') { e.preventDefault(); step(e.shiftKey ? -10 : -1); }
-      if (e.code === 'ArrowRight') { e.preventDefault(); step(e.shiftKey ? 10 : 1); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, step, modal]);
-
   const update = useCallback((patch: Partial<SceneSettings>) => {
     setSettings((s) => ({ ...s, ...patch, colors: patch.colors ? { ...s.colors, ...patch.colors } : s.colors }));
     setActivePreset('custom');
@@ -194,6 +182,16 @@ export default function App() {
     setActivePreset('custom');
     notify(`Switched to ${getCharacter(id).name}`);
   };
+
+  // One global shortcut listener (←/→, Space, 1–6, W/I/R). Lives in
+  // Controls.tsx so the studio has a single key-handling path.
+  useStudioHotkeys({
+    togglePlay,
+    step,
+    selectCharacter: applyCharacter,
+    setMotion: (motion) => update({ motion }),
+    modalOpen: modal !== null,
+  });
 
   const uploadReferences = (files: FileList | null) => {
     if (!files) return;

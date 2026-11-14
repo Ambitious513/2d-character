@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Activity, ArrowLeftRight, Camera, ChevronDown, Glasses, ImagePlus, Layers, Palette, PersonStanding, SlidersHorizontal, Sparkles, Trash2, Upload, Backpack, Eye, Footprints, Gauge, MoveHorizontal, Waves, Wind, Users, Shirt, Scissors, MessageSquare, Crown, Headphones, Snowflake, Smile, CircleDot } from 'lucide-react';
 import type { SceneSettings, CharacterColors, TimeOfDay, Motion, SceneId, HairStyle, Outfit, Build } from '../rig/types';
 import { MOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY } from '../rig/types';
@@ -208,4 +208,89 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
       </div>
     </aside>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyboard shortcuts                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface StudioHotkeyActions {
+  /** Toggle play/pause. */
+  togglePlay: () => void;
+  /** Step by `delta` frames (clamped, and pauses playback). */
+  step: (delta: number) => void;
+  /** Select a cast member by id. */
+  selectCharacter: (id: string) => void;
+  /** Set the current motion. */
+  setMotion: (motion: Motion) => void;
+  /** True while a modal is open — shortcuts are suspended then. */
+  modalOpen: boolean;
+}
+
+const MOTION_KEYS: Record<string, Motion> = {
+  w: 'walk',
+  i: 'idle',
+  r: 'run',
+};
+
+/**
+ * Global studio shortcuts:
+ *
+ *   ← / →       step one frame (Shift = ten frames)
+ *   Space       play / pause
+ *   1–6         select that cast member
+ *   W / I / R   walk / idle / run
+ *
+ * Kept in one listener so the studio never double-handles a key. Events aimed
+ * at a form control or a modal are ignored, so typing never triggers a
+ * shortcut and Space never re-clicks a focused button.
+ */
+export function useStudioHotkeys(actions: StudioHotkeyActions): void {
+  const ref = useRef(actions);
+  ref.current = actions;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (
+          tag === 'INPUT' ||
+          tag === 'SELECT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'BUTTON' ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+      if (ref.current.modalOpen) return;
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        ref.current.togglePlay();
+        return;
+      }
+      if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        ref.current.step(e.shiftKey ? -10 : -1);
+        return;
+      }
+      if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        ref.current.step(e.shiftKey ? 10 : 1);
+        return;
+      }
+      if (/^Digit[1-6]$/.test(e.code)) {
+        const member = listCharacters()[Number(e.code.slice(5)) - 1];
+        if (member) ref.current.selectCharacter(member.id);
+        return;
+      }
+      const motion = MOTION_KEYS[e.key.toLowerCase()];
+      if (motion) ref.current.setMotion(motion);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 }

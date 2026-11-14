@@ -31,6 +31,41 @@ jobs:
       - name: Production build
         run: npm run build
 
+  render-smoke:
+    name: Render smoke (PNG sequence)
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Reuse the same Chromium the studio smoke test uses, so the system
+      # libraries are installed by Playwright's --with-deps (distro-safe).
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Render 10 frames of CharacterOnly
+        run: |
+          CHROMIUM="$(node -e "process.stdout.write(require('playwright').chromium.executablePath())")"
+          echo "Rendering with Chromium at $CHROMIUM"
+          npx remotion render src/remotion/index.ts CharacterOnly renders/ci-test \
+            --frames=0-9 \
+            --image-format=png \
+            --sequence \
+            --browser-executable "$CHROMIUM"
+
+      - name: Assert the PNG sequence was written
+        run: |
+          find renders/ci-test -name '*.png' | sort
+          test "$(find renders/ci-test -name '*.png' | wc -l)" -eq 10
+
   browser-smoke:
     name: Studio browser smoke test
     runs-on: ubuntu-latest

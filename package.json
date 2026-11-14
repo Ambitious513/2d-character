@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Reusable, frame-deterministic 2D character library (cast, motions, lip-sync) and environments for Remotion, plus a live visual studio.",
+  "_releaseChecklist": "Run `npm run update:visual-goldens` after an intentional visual change, and `npm run kit:zip` before cutting a release so public/stride-remotion-kit.zip matches the source tree.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
@@ -17,6 +18,7 @@
     "render:alpha": "remotion render src/remotion/index.ts CharacterOnly renders/frames --image-format=png --sequence",
     "test": "tsx --test tests/*.test.ts tests/*.test.tsx",
     "test:watch": "tsx --test --watch tests/*.test.ts tests/*.test.tsx",
+    "update:visual-goldens": "tsx scripts/update-visual-goldens.ts",
     "smoke": "node scripts/smoke.mjs",
     "contact-sheet": "tsx scripts/contact-sheet.tsx",
     "verify": "npm run typecheck && npm test && npm run build",
@@ -27,7 +29,8 @@
     "render:alpha:prores": "remotion render src/remotion/index.ts CharacterOnly renders/character.mov --codec=prores --prores-profile=4444 --pixel-format=yuva444p10le --image-format=png",
     "render:alpha:webm": "remotion render src/remotion/index.ts CharacterOnly renders/character.webm --codec=vp9 --pixel-format=yuva420p --image-format=png",
     "check:ids": "tsx scripts/check-ids.tsx",
-    "check:env-ids": "tsx scripts/check-env-ids.tsx"
+    "check:env-ids": "tsx scripts/check-env-ids.tsx",
+    "kit:zip": "tsx scripts/generate-kit-zip.ts"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",
