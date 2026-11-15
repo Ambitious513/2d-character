@@ -23,9 +23,11 @@ repo is in, what was just done, and exactly where to continue.
   `ca8e3a1` CI record → `1788c4f` **Stage 4** → `b5f4e01` Stage 4 independent
   verification + handoff truth-up → `5501430` uploads junk removal →
   `4a10194` kit-ZIP regeneration (CI green again) → **CI record (this commit)**.
-- **Next work:** **weather** (`rain` / `snow` / `fog`) — the last open Phase 5
-  item. The docs site is finished; do **not** redo any stage of it. Two owner
-  decisions remain open (npm publish, v1 shims). See "Where to continue" below.
+- **Next work:** **Phase 5.1** — the contract is `docs/PHASE-5.1-SPEC.md`
+  (landed in `38bee81`, CI run **26** green). T0 (CI hardening) is done; T1a
+  (rig weather) is next, then T1b (studio + docs), then closeout. The docs site
+  itself is finished; do **not** redo any stage of it. Two owner decisions
+  remain open (npm publish, v1 shims). See "Phase 5.1" below.
 
 > ## 🔐 Credential hygiene (2026-11-15)
 >
@@ -98,6 +100,79 @@ drop the v1 compatibility shims. See "Open decisions" below.
 — run `npm run kit:zip` and commit `public/stride-remotion-kit.zip` in the same
 commit. The ZIP guard compares the archive against the **whole working tree**.
 See rule 11 and "CI fix" below.
+
+---
+
+## Phase 5.1 — CI hardening + weather (2026-11-15)
+
+**Contract:** `docs/PHASE-5.1-SPEC.md`. One row = one commit **and** one push
+**and** a confirmed-green CI run. The spec's §7.6 ledger is the live checklist.
+
+| Stage | Commit | CI | Evidence |
+| --- | --- | --- | --- |
+| Step 0 — land the spec | `38bee81` | ✅ run **26** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke 10/10 PNGs |
+| T0 — CI hardening | *(this commit)* | ⏳ pending | see below |
+| T1a — rig weather | — | — | not started |
+| T1b — studio + docs | — | — | not started |
+| Closeout | — | — | not started |
+
+### Step 0 — workspace re-established, spec landed (`38bee81`)
+
+The sandbox had **no source tree at all** this session (only the owner's
+uploads), so spec §7.1's "diff the old tree against a fresh clone" was vacuous:
+`git clone` produced the tree, and `git ls-remote` confirmed `main` at
+`567e7e4ef5e3a17d064dab687e0610fcf38537c4` — the baseline the spec was written
+against. Then `npm ci` (273 packages), `npx playwright install --with-deps
+chromium` **first** (the previous session died on `libglib-2.0.so.0` without it),
+and the untouched baseline gate: **85/85 tests**, `tsc -b` clean, build ok.
+
+The spec is tracked at `docs/PHASE-5.1-SPEC.md`. The interactive workbench
+(`stride-phase-5.1-spec.html`) and its harness (`spec-check.mjs`) stay
+**untracked** in `scratch/` — the HTML embeds base64 fonts and would ship inside
+every kit ZIP download. Both are gitignored *and* ZIP-excluded, so the archive
+guard cannot see them.
+
+Credentials followed §7.2: token in `/tmp/.stride-token` (`umask 077`), referenced
+by a `credential.helper` in the **global** git config, so neither a tracked file
+nor the repo's `.git/config` contains it. `GET /user` → 200 as `Ambitious513`
+with `x-oauth-scopes: repo`; the push succeeded, which is the only real proof of
+write scope. **Rotate this token** — it was pasted into chat.
+
+### T0 — CI hardening (T0.1–T0.3)
+
+**T0.1 — the latent studio-smoke flake is gone.** `scripts/smoke.mjs` clicked
+`SVG frame` the instant `.export-modal` appeared, while `.modal` was still
+running `pop .18s` and `.modal-backdrop` `fade .15s`. Playwright requires a
+*stable* bounding box, so that click was a timing lottery on a slow runner. Both
+browser contexts now open with `reducedMotion: 'reduce'` (the global
+`@media (prefers-reduced-motion: reduce)` block at `src/styles.css:317` already
+de-animates `*`, so **no CSS change was needed**), the first in-modal click waits
+on `document.getAnimations()`, and both `.toast` waits now also wait for
+`state: 'detached'` — the fixed-position toast sits exactly where the next click
+lands. No `waitForTimeout` padding and no retry loop was added: that would hide
+the race instead of removing it.
+
+**T0.2 — deprecated actions bumped.** `actions/checkout` v4 → **v7**,
+`actions/setup-node` v4 → **v7**, `actions/upload-artifact` v4 → **v7**. Latest
+releases re-confirmed against the GitHub API before editing: `v7.0.1`, `v7.1.0`,
+`v7.0.2`. The project's `node-version: 20` is deliberately **unchanged** — the
+deprecation warning is about the *action's* runtime, not the project's, so a
+Node bump stays a separate, separately-attributable commit.
+
+**T0.3 — jobs bounded, superseded runs cancelled.** `concurrency: ci-${{ github.ref }}`
+with `cancel-in-progress: true`, plus `timeout-minutes` 12 / 20 / 15 on `verify`,
+`browser-smoke`, `render-smoke`. Observed durations are 29 s / 125 s / 45 s, so
+this is ~10× headroom, not a tight leash.
+
+**Verified locally before the push** (1 GB box, so against `build` + `preview`,
+never `vite dev`):
+
+```
+npm run smoke      ×5 → all five passed, no "element is not stable", no sleeps added
+npm run smoke:docs     → 222 checks passed, 0 failed
+npm run verify         → typecheck clean · 85/85 tests · build ok
+npm run kit:zip        → 86 files (ci.yml, scripts and docs are tracked)
+```
 
 ---
 

@@ -5,7 +5,13 @@ const BASE = process.env.BASE_URL || 'http://localhost:5173';
 const errors = [];
 fs.mkdirSync('screenshots', { recursive: true });
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+// `reducedMotion: 'reduce'` is load-bearing, not cosmetic: src/styles.css de-animates
+// every element under that media query (`* { animation-duration: .01ms !important }`),
+// so `.modal` (pop .18s) and `.modal-backdrop` (fade .15s) never move a bounding box
+// while Playwright is trying to click inside them. Without it the export-modal click
+// is a timing lottery on a slow runner ("element is not stable"). scripts/docs-smoke.mts
+// already does this for its calm context; the two harnesses now agree.
+const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, reducedMotion: 'reduce' });
 page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 
@@ -57,13 +63,19 @@ await page.getByRole('button', { name: 'Save preset' }).click();
 await page.locator('.save-modal input').fill('Smoke test look');
 await page.getByRole('button', { name: 'Save preset', exact: true }).last().click();
 await page.waitForSelector('.toast');
+// `.toast` is position:fixed at the bottom centre and can sit on top of the next
+// click target. Wait for it to leave the DOM rather than padding with a sleep.
+await page.waitForSelector('.toast', { state: 'detached' });
 await page.locator('select[aria-label="Load preset"]').selectOption({ label: 'Smoke test look' });
 await page.getByRole('button', { name: 'Delete preset' }).click();
 await page.waitForSelector('.toast');
+await page.waitForSelector('.toast', { state: 'detached' });
 
 // Export dialog
 await page.getByRole('button', { name: /Export kit/ }).click();
 await page.waitForSelector('.export-modal');
+// Belt and braces: let any entrance animation finish before the first in-modal click.
+await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
 await page.getByRole('button', { name: 'SVG frame' }).click();
 await page.waitForSelector('.svg-preview svg');
 const dl = page.waitForEvent('download');
@@ -84,7 +96,7 @@ if (await page.locator('.guide-step').count() !== 6) errors.push('expected 6 gui
 await page.screenshot({ path: 'screenshots/guide.png', fullPage: true });
 
 // Mobile
-const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
 mobile.on('console', (m) => { if (m.type() === 'error') errors.push(`mobile console: ${m.text()}`); });
 mobile.on('pageerror', (e) => errors.push(`mobile pageerror: ${e.message}`));
 await mobile.goto(BASE, { waitUntil: 'networkidle' });

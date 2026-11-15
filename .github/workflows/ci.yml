@@ -7,14 +7,23 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# The doc+ZIP commit pattern (PROGRESS rule 11) pushes twice in quick succession.
+# Superseded runs are cancelled instead of racing the newer commit to the gate.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     name: Typecheck, test, build
     runs-on: ubuntu-latest
+    # Observed: verify 36 s, browser-smoke 124 s, render-smoke 48 s. These are
+    # ~10x headroom, so a hung job dies instead of burning the whole budget.
+    timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -35,10 +44,11 @@ jobs:
     name: Render smoke (PNG sequence)
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -69,10 +79,11 @@ jobs:
   browser-smoke:
     name: Browser smoke (studio + docs)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -110,7 +121,7 @@ jobs:
 
       - name: Upload screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-screenshots
           path: screenshots/

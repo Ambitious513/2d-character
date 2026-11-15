@@ -538,8 +538,8 @@ Each commit is independently revertable. **Do not start 1b before 1a is green on
 Tick a "pushed, CI green" line only after the push **and** the green run are both
 real; a committed-but-unpushed stage stays unticked.
 
-- [x] Spec written, reviewed against the tree (`docs/PHASE-5.1-SPEC.md`)
-- [ ] T0.1 smoke de-flake · [ ] T0.2 action bumps · [ ] T0.3 timeouts/concurrency
+- [x] Spec written, reviewed against the tree (`docs/PHASE-5.1-SPEC.md`) — landed `38bee81`, CI run 26 green
+- [x] T0.1 smoke de-flake · [x] T0.2 action bumps · [x] T0.3 timeouts/concurrency
 - [ ] T0 pushed, CI green (run #____)
 - [ ] T1a types + schema + env props · [ ] `weather-math.ts` + `Weather.tsx`
 - [ ] `SceneLayer` early-return · [ ] `WeatherFront` in compositions · [ ] barrel exports
