@@ -243,10 +243,28 @@ ${note}
 <${comp} {...castSceneSettings('${character}', { motion: 'idle' })} />;`;
 }
 
-export function sceneSnippet(scene: string, timeOfDay: string, parallax: number): string {
+/**
+ * Scene plate snippet. `speed` and `direction` are printed only when they differ
+ * from the defaults, so the common case stays a one-liner.
+ */
+export function sceneSnippet(
+  scene: string,
+  timeOfDay: string,
+  parallax: number,
+  extra: { speed?: number; direction?: number } = {},
+): string {
+  const lines = [
+    `  scene="${scene}"`,
+    `  timeOfDay="${timeOfDay}"`,
+    `  parallax={${parallax}}`,
+  ];
+  if (extra.speed !== undefined && extra.speed !== 1) lines.push(`  speed={${extra.speed}}`);
+  if (extra.direction !== undefined && extra.direction !== 1) lines.push(`  direction={${extra.direction}}`);
   return `import { SceneOnly } from './src';
 
-<SceneOnly scene="${scene}" timeOfDay="${timeOfDay}" parallax={${parallax}} />;`;
+<SceneOnly
+${lines.join('\n')}
+/>;`;
 }
 
 /* ------------------------------------------------------------------ */

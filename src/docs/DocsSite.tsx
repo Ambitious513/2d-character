@@ -43,6 +43,10 @@ import type { SceneSettings } from '../index';
 import { DocsPlayer } from './DocsPlayer';
 import { CodeBlock } from './CodeBlock';
 import { Playground, PLAYGROUND_DEFAULT, type PlaygroundView } from './Playground';
+import { CompositionExplorer } from './CompositionExplorer';
+import { CastMotionExplorer } from './CastMotionExplorer';
+import { SceneExplorer } from './SceneExplorer';
+import { PresetPanel } from './PresetPanel';
 import { Chip, FrameRuler, Note, SectionHead } from './parts';
 import { ARCHITECTURE_SNIPPET, EXPORT_RECIPES, QUICKSTART } from './snippets';
 import './docs.css';
@@ -59,6 +63,10 @@ const SECTIONS: SectionDef[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
   { id: 'playground', label: 'Playground' },
+  { id: 'compositions', label: 'Compositions' },
+  { id: 'cast', label: 'Cast & motion' },
+  { id: 'scenes', label: 'Scenes' },
+  { id: 'presets', label: 'Presets' },
   { id: 'export', label: 'Export' },
   { id: 'architecture', label: 'Architecture' },
 ];
@@ -159,6 +167,41 @@ export default function DocsSite() {
     setPgPreset(presetName);
   }, []);
 
+  /**
+   * Scroll to the playground. Setting the hash keeps the deep link honest; the
+   * explicit scroll covers the case where the hash is already `#/docs/playground`
+   * and no `hashchange` fires.
+   */
+  const gotoPlayground = useCallback(() => {
+    if (window.location.hash !== '#/docs/playground') {
+      window.location.hash = '#/docs/playground';
+    }
+    document.getElementById('docs-playground')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActive('playground');
+  }, []);
+
+  /** Wholesale load: a cast card or a preset. Always shows the scene view. */
+  const loadIntoPlayground = useCallback(
+    (settings: SceneSettings, name: string) => {
+      replacePg(settings, name);
+      setPgView('scene');
+      notify(`${name} loaded into the playground`);
+      gotoPlayground();
+    },
+    [replacePg, notify, gotoPlayground],
+  );
+
+  /** Partial load: the scene explorer keeps the visitor's character and motion. */
+  const applySceneToPlayground = useCallback(
+    (patch: Partial<SceneSettings>, label: string) => {
+      updatePg(patch);
+      setPgView('scene');
+      notify(`${label} applied to the playground`);
+      gotoPlayground();
+    },
+    [updatePg, notify, gotoPlayground],
+  );
+
   const cast = listCharacters();
 
   return (
@@ -203,6 +246,7 @@ export default function DocsSite() {
         <Overview />
         <Quickstart onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')} />
         <Playground
+          index={numOf('playground')}
           settings={pgSettings}
           view={pgView}
           presetName={pgPreset}
@@ -210,6 +254,28 @@ export default function DocsSite() {
           update={updatePg}
           replace={replacePg}
           notify={notify}
+        />
+        <CompositionExplorer
+          index={numOf('compositions')}
+          onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')}
+        />
+        <CastMotionExplorer
+          index={numOf('cast')}
+          onLoadCharacter={loadIntoPlayground}
+          onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')}
+        />
+        <SceneExplorer
+          index={numOf('scenes')}
+          onApply={applySceneToPlayground}
+          onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')}
+        />
+        <PresetPanel
+          index={numOf('presets')}
+          settings={pgSettings}
+          presetName={pgPreset}
+          onLoad={loadIntoPlayground}
+          notify={notify}
+          onCopied={(ok) => notify(ok ? 'Snippet copied' : 'Copy failed — select the text manually')}
         />
         <Export />
         <Architecture castCount={cast.length} />

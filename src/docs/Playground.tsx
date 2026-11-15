@@ -16,7 +16,6 @@
 import { useMemo } from 'react';
 import {
   Camera,
-  ChevronDown,
   Copy,
   Download,
   Film,
@@ -53,6 +52,7 @@ import { copyText, downloadText } from '../ui/utils';
 import { DocsPlayer } from './DocsPlayer';
 import { CodeBlock } from './CodeBlock';
 import { Chip, FrameRuler, SectionHead } from './parts';
+import { Group, Segmented, Select, Slider, Switch } from './controls';
 import { playgroundSnippet, propsExpression } from './snippets';
 
 export type PlaygroundView = 'scene' | 'character';
@@ -88,6 +88,8 @@ const ACCESSORIES: { key: keyof SceneSettings; label: string }[] = [
 ];
 
 export interface PlaygroundProps {
+  /** Section number, derived from the docs nav order by `DocsSite`. */
+  index: string;
   settings: SceneSettings;
   view: PlaygroundView;
   /** Name of the last loaded preset, or `Custom` once a control is touched. */
@@ -101,6 +103,7 @@ export interface PlaygroundProps {
 }
 
 export function Playground({
+  index,
   settings,
   view,
   presetName,
@@ -183,7 +186,7 @@ export function Playground({
   return (
     <section className="docs-section" id="docs-playground" data-docs-playground>
       <SectionHead
-        index="03"
+        index={index}
         eyebrow="Playground"
         title={<>Steer the rig <span>live</span>. Every control is a prop.</>}
         lede="This is the same composition a host registers with Remotion, driven by the settings object below. Change anything and the Player, the frame readout and the generated snippet all follow — no reload, no render step."
@@ -466,163 +469,5 @@ export function Playground({
         <CodeBlock code={snippet} title="src/Preview.tsx" label="Copy the live playground snippet" />
       </div>
     </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Control primitives — labelled, keyboard-operable, no dependencies    */
-/* ------------------------------------------------------------------ */
-
-function Group({
-  icon,
-  title,
-  note,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  note?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="pg-group">
-      <div className="pg-group-title">
-        {icon}
-        {title}
-        {note ? <span>{note}</span> : null}
-      </div>
-      <div className="pg-fields">{children}</div>
-    </div>
-  );
-}
-
-function Slider({
-  id,
-  label,
-  value,
-  min,
-  max,
-  step,
-  format,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  format: (value: number) => string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="pg-field" htmlFor={id}>
-      <span>
-        {label}
-        <output htmlFor={id}>{format(value)}</output>
-      </span>
-      <input
-        id={id}
-        type="range"
-        aria-label={label}
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
-    </label>
-  );
-}
-
-function Select({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: { id: string; label: string }[];
-  onChange: (id: string) => void;
-}) {
-  return (
-    <label className="pg-field" htmlFor={id}>
-      <span>{label}</span>
-      <span className="pg-select">
-        <select id={id} aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
-          {options.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={14} />
-      </span>
-    </label>
-  );
-}
-
-function Segmented({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { id: string; label: string }[];
-  onChange: (id: string) => void;
-}) {
-  return (
-    <div className="pg-field">
-      <span>{label}</span>
-      <div className="pg-seg" role="group" aria-label={label}>
-        {options.map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            className={value === o.id ? 'active' : ''}
-            aria-pressed={value === o.id}
-            onClick={() => onChange(o.id)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Switch({
-  label,
-  note,
-  checked,
-  onChange,
-}: {
-  label: string;
-  note: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="pg-switch-row">
-      <span className="pg-switch-copy">
-        <b>{label}</b>
-        <small>{note}</small>
-      </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        className={`pg-switch ${checked ? 'on' : ''}`}
-        onClick={() => onChange(!checked)}
-      >
-        <span />
-      </button>
-    </div>
   );
 }

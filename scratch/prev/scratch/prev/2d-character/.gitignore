@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Remotion render output
+renders/
+.remotion/
+
+# Generated previews / test artefacts
+screenshots/*.png
+!screenshots/.gitkeep
+preview/
+test-results/
+playwright-report/
+blob-report/
+
+# Local env & editor
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Agent recovery snapshots — never commit these (PROGRESS.md rule 6)
+handoff/
+recovered/
+*.tar.gz
+*.bundle
