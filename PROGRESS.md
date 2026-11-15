@@ -7,17 +7,21 @@ repo is in, what was just done, and exactly where to continue.
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — docs site **Stage 3 is complete, mounted and now actually
-  verified in a browser** (102 checks, zero console/page errors). Typecheck
-  clean, **81/81 tests**, build succeeds, studio smoke passes. Phase 5's four
-  deliverables remain done and CI-verified (`render-smoke` included).
+- **State:** ✅ green — the docs site is **complete (Stages 0–4)**. Independently
+  re-verified from a fresh clone: typecheck clean, **83/83 tests**, build ok
+  (docs chunk 160.80 kB), **docs smoke 222/222 checks, 0 failures, zero
+  console/page errors**, studio smoke passes. Phase 5's four deliverables remain
+  done and CI-verified (`render-smoke` included).
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
   record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
   `86f266f` Stage 2 → `fb64cd8` Stage 3 recovery → `d11bdab` owner hand-upload of
-  the rest of Stage 3 → **Stage 3 verification + repo cleanup (this commit)**.
-- **Next work:** docs site **Stage 4** (docs smoke script + CI + handoff docs +
-  kit ZIP). See `docs/DOCS_SITE_PLAN.md` §0.
+  the rest of Stage 3 → `6d344e9` Stage 3 verification + repo cleanup →
+  `ca8e3a1` CI record → `1788c4f` **Stage 4** → **Stage 4 independent
+  verification + handoff truth-up (this commit)**.
+- **Next work:** **weather** (`rain` / `snow` / `fog`) — the last open Phase 5
+  item. The docs site is finished; do **not** redo any stage of it. Two owner
+  decisions remain open (npm publish, v1 shims). See "Where to continue" below.
 
 > ## 🔐 Credential hygiene (2026-11-15)
 >
@@ -38,7 +42,9 @@ repo is in, what was just done, and exactly where to continue.
 >
 > The arrangement commit `6d32d3f` is **on GitHub**. `origin/main` was verified
 > after the push: root contains `PROGRESS.md`, `README.md`, `src/`, `tests/`,
-> `docs/` — and **no tarballs, no `uploads/`**. `package.json` reads `2.2.0`.
+> `docs/` — and **no tarballs**. `package.json` reads `2.2.0`. (An `uploads/*.txt`
+> chat artefact did creep back in at `1788c4f`; it was removed again and
+> `uploads/` is now gitignored — see "Stage 4 independent verification" below.)
 >
 > **Why this took three sessions:** the first two tokens were fine-grained PATs
 > that authenticated as `Ambitious513` with **admin** role but granted only
@@ -68,25 +74,115 @@ repo is in, what was just done, and exactly where to continue.
 The repo is **no longer in the tarball-recovery state**. Real source is on
 GitHub, Phase 4 is complete, and Phase 5's four named deliverables are complete
 and CI-verified: visual-regression snapshots, the `render-smoke` CI job, the
-fresh kit ZIP, and keyboard-first studio UX. The current suite is **81 tests**,
+fresh kit ZIP, and keyboard-first studio UX. The current suite is **85 tests**,
 including **48 visual golden hashes**.
 
-Do **not** redo those Phase 5 items. The remaining roadmap work is:
+**The docs site is finished — Stages 0–4 are all done, pushed and verified.**
+Do **not** redo any stage of it, and do not go looking for
+`scripts/docs-stage3-check.mts`: it was promoted to `scripts/docs-smoke.mts`
+(222 checks) and wired into CI at `1788c4f`.
 
-1. **Docs site** with live `<Player>` examples — **Stages 0–3 done, mounted and
-   verified**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table. Only
-   **Stage 4** is left: promote `scripts/docs-stage3-check.mts` into
-   `scripts/docs-smoke.mjs`, add `npm run smoke:docs`, wire it into the CI
-   browser job, add the docs-leak packaging guard, and update
-   README / ROADMAP / ARCHITECTURE. (Kit ZIP was already refreshed this session.)
-2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
+The remaining roadmap work is:
+
+1. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item and the only
+   thing between Phase 5 and closed. No `weather` field exists yet.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
 
 ---
 
-## Stage 3 verification + repo cleanup (2026-11-15, this commit)
+## Stage 4 independent verification + handoff truth-up (2026-11-15, this commit)
+
+**Scope, chosen by the owner: fix the three flagged issues, push, stop.** No
+weather, no npm publish, no v1 shim removal, no render-path or app-code changes.
+
+`1788c4f` landed Stage 4 but its commit message said *"agent completed task
+unsure, next agent needs to check everything and update the documents"*. So
+everything was re-checked from a **fresh clone**, not trusted:
+
+```
+npx tsc -b                                  # clean
+npm test                                    # 83/83 pass, 0 fail
+npm run build                               # ✓ docs chunk 160.80 kB (gzip 46.11)
+BASE_URL=…:4173 npm run smoke:docs          # 222 checks passed, 0 failed,
+                                            # zero console/page errors, 21 shots
+BASE_URL=…:4173 npm run smoke               # studio PASS (desktop + mobile)
+```
+
+Per-suite counts were confirmed by running each file individually: rig 6 ·
+library 24 · svg-ids 14 · packaging 30 · export-recipes 6 · visual 2 · kit-zip 1.
+A determinism audit (`Math.random` / `Date.now` / `new Date` / `useId` /
+`performance.now` across `src/rig` + `src/remotion`) returned **zero hits** —
+randomness lives only in `App.tsx` and `docs/Playground.tsx`, i.e. the UI picks
+settings and the render path stays pure. No credential string in any tracked
+file.
+
+**Conclusion: Stage 4 was genuinely complete and green.** The previous agent's
+uncertainty was about bookkeeping, not broken code. Three real defects were
+found, all in hygiene/documentation, and all fixed here:
+
+### 1. `PROGRESS.md` was a full stage behind (this file)
+
+`1788c4f` updated README, ROADMAP, ARCHITECTURE and DOCS_SITE_PLAN but **never
+touched this file** — the one that says "read this first". It still claimed
+81 tests, "Stage 4 next", a harness filename that no longer existed, and "no
+`uploads/`". That is a rule-5 violation and exactly the trap rule 9 warns about:
+the next agent would have redone finished work. Reconciled throughout.
+
+### 2. `uploads/f8220c91-….txt` had been re-committed
+
+237 bytes of scraped GitHub session boilerplate, zero references. `6d344e9` had
+deleted `uploads/*.txt` as junk with owner approval; `1788c4f` re-added one
+(tracked files 85 → 87). **Deleted again**, and `uploads/` is now in `.gitignore`
+*and* in the kit-ZIP exclusion list so it can neither return nor ship to users.
+
+### 3. The kit ZIP was stale and its guard could not see it
+
+The shipped archive held 84 entries against 87 tracked files. The delta was the
+ZIP itself and `screenshots/.gitkeep` (both excluded on purpose) **plus
+`uploads/f8220c91-….txt`** — genuine drift. `tests/kit-zip.test.ts` passed
+anyway, because it only checked a hand-picked required-files list plus version
+and forbidden prefixes. So the documented guarantee ("the ZIP is the current
+source tree") was stronger than what was enforced.
+
+Fixed by making the guarantee real rather than rewording it:
+
+- `scripts/generate-kit-zip.ts` now **exports `listSourceFiles()`** and only
+  runs `main()` when invoked as a script, so importing it cannot rewrite the
+  archive.
+- `tests/kit-zip.test.ts` gained **two** tests that use that same manifest:
+  one asserts the ZIP contains *exactly* the tree (no missing, no extra file),
+  one asserts every shipped file is **byte-identical** to the working tree.
+  Suite 83 → **85**.
+- **Both new guards were mutation-tested.** With a stale archive they failed
+  while the old spot check passed; with an unshipped probe file present the
+  manifest test failed by name. Reverting made everything pass.
+- ZIP regenerated: **84 files, 265.6 KB**, now in sync.
+
+### Environment limits reproduced (not defects)
+
+This sandbox is capped at **1 GB RAM**, as recorded below. Independently
+reproduced: `vite dev` + Chromium → `Target crashed`, and
+`remotion render --frames=0-9 --concurrency=1 --max-old-space-size=512` →
+**OOM-killed at 92 % bundling**. Both browser gates pass against the production
+build served statically (`npm run build` + `npm run preview`,
+`BASE_URL=http://localhost:4173`), which is what CI does for the docs. Headless
+Chromium also needs `npx playwright install --with-deps chromium` on Debian 12.
+
+### Still not verified here
+
+`render-smoke` (CI covers it, this sandbox cannot) and **actual ProRes/WebM
+output** — see "What remains unverified" below. That gap is unchanged and real.
+
+---
+
+## Stage 3 verification + repo cleanup (2026-11-15) — history
+
+> **Superseded:** Stage 4 has since landed (`1788c4f`) and been independently
+> verified. This section is kept as history only — for the current state see
+> "Stage 4 independent verification + handoff truth-up" above. Test counts and
+> filenames below are as they were at `6d344e9`, not current.
 
 **Scope, chosen by the owner: verify and document Stage 3, then stop.** No
 Stage 4 wiring, no weather, no npm publish, no v1 shim removal, no render-path
@@ -187,6 +283,12 @@ test, or CI workflow was deleted.
   before clicking — do not weaken the assertion.
 
 ### Not done here (deliberately, per the owner's scope)
+
+> **Since done at `1788c4f` (Stage 4)** — kept as history. The harness shipped as
+> `scripts/docs-smoke.mts` (not `.mjs`, so it stays inside `tsc -b`), `smoke:docs`
+> and the CI step are wired, the packaging guards landed, and README / ROADMAP /
+> ARCHITECTURE were updated. `PROGRESS.md` was the one doc missed — fixed in the
+> current commit.
 
 Stage 4 in full: `scripts/docs-smoke.mjs` + `smoke:docs` + CI step + screenshot
 artifact, the docs-leak assertion in `tests/packaging.test.tsx`, and the
@@ -524,24 +626,29 @@ The repo had **no root README** and no architecture doc.
 
 ```bash
 npm install
-npm run verify      # typecheck + 81 tests + build — ALL GREEN
+npm run verify      # typecheck + 85 tests + build — ALL GREEN
 ```
 
-CI run [#9 / 43636701309](https://github.com/Ambitious513/2d-character/actions/runs/43636701309)
-on `d2e8376` completed successfully: `verify`, `browser-smoke`, and
+Re-verified from a fresh clone on 2026-11-15 (see "Stage 4 independent
+verification" above): typecheck clean, **85/85 tests**, build ok, docs smoke
+**222/222**, studio smoke PASS.
+
+CI run [#19 / 43704222675](https://github.com/Ambitious513/2d-character/actions/runs/43704222675)
+on `6d344e9` completed successfully: `verify`, `browser-smoke`, and
 `render-smoke`. The render job produced exactly 10 PNG frames of
-`CharacterOnly` on `ubuntu-latest`.
+`CharacterOnly` on `ubuntu-latest`. Stage 4 (`1788c4f`) reshaped `browser-smoke`
+into "Browser smoke (studio + docs)"; its CI run should be checked on GitHub.
 
 | Suite | Tests | Guards |
 | --- | --- | --- |
 | `tests/rig.test.ts` | 6 | IK maths |
 | `tests/library.test.tsx` | 24 | determinism, foot-lock, lip-sync, cast, environments |
 | `tests/svg-ids.test.tsx` | 14 | gradient-id collisions across React roots |
-| `tests/packaging.test.tsx` | 28 | barrel, preset envelope + v1 migration, factories |
+| `tests/packaging.test.tsx` | 30 | barrel, docs/studio leak guards, import-graph walk, preset envelope + v1 migration, factories |
 | `tests/export-recipes.test.ts` | 6 | alpha recipes stay valid |
 | `tests/visual.test.tsx` | 2 | 48 golden hashes (cast × motion × emotion, scene × lighting) |
-| `tests/kit-zip.test.ts` | 1 | the downloadable ZIP is the current source tree |
-| **total** | **81** | |
+| `tests/kit-zip.test.ts` | 3 | the downloadable ZIP is the current source tree — full manifest + byte-for-byte |
+| **total** | **85** | |
 
 ### ⚠️ What remains unverified
 
@@ -599,7 +706,8 @@ byte-stable) in `<svg>` — leave the fragment-contract assertion alone.
 
 ## Where to continue
 
-Current status after Phase 5 and the 2026-11-15 docs truth-up:
+Current status after Phase 5, the docs site (Stages 0–4) and the Stage 4
+independent verification:
 
 1. ~~**Visual-regression snapshots.**~~ **Done** — `tests/visual.test.tsx` +
    `tests/visual-goldens.tsx` + `tests/__golden__/visual-hashes.json`
@@ -619,14 +727,15 @@ Documentation truth-up (2026-11-15): **done** — `PROGRESS.md`,
 
 Still open, in recommended order:
 
-5. **Docs site — Stage 4 only.** Stages 0–3 are done, mounted and verified
-   (102-check browser harness, `scripts/docs-stage3-check.mts`). What remains:
-   promote that harness to `scripts/docs-smoke.mjs`, add `npm run smoke:docs`,
-   wire it into the CI browser job with the screenshot artifact, add a
-   `tests/packaging.test.tsx` assertion that `src/docs` never leaks into the
-   barrel, and update README / ROADMAP / ARCHITECTURE. Then refresh the kit ZIP.
-6. **Weather** (`rain`/`snow`/`fog`) — the one deferred Phase 3 item. No `weather`
-   field exists yet; would need `types.ts` → `schema.ts` → palettes → inspector.
+5. ~~**Docs site — Stage 4 only.**~~ **Done & independently verified** —
+   `scripts/docs-smoke.mts` (222 browser checks), `npm run smoke:docs`, the CI
+   step against the production build, and two packaging guards that walk the
+   barrel's import graph. Stages 0–4 are all complete. See
+   `docs/DOCS_SITE_PLAN.md` §0. **Do not redo any of it.**
+6. **Weather** (`rain`/`snow`/`fog`) — the one deferred Phase 3 item and now the
+   **next piece of real work**. No `weather` field exists yet; would need
+   `types.ts` → `schema.ts` → palettes → scene renderers → studio inspector →
+   docs playground → visual goldens.
 
 ### Open decisions (need the owner's input — do not guess)
 

@@ -14,7 +14,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync, zipSync } from 'fflate';
 
@@ -37,6 +37,9 @@ const EXCLUDED_PREFIXES = [
   'handoff/',
   'recovered/',
   'preview/',
+  // Conversation artefacts, not project source (see .gitignore).
+  'uploads/',
+  'scratch/',
 ];
 
 const EXCLUDED_EXACT = new Set([
@@ -53,7 +56,15 @@ function isExcluded(path: string): boolean {
   return false;
 }
 
-function listSourceFiles(): string[] {
+/**
+ * The authoritative manifest: every file that belongs in the kit, sorted.
+ *
+ * Exported so `tests/kit-zip.test.ts` can compare the shipped archive against
+ * the *whole* tree using the exact same rules. The test used to check only a
+ * hand-picked list of required files, which let a genuinely stale archive pass
+ * (1788c4f shipped a ZIP missing a tracked file). One definition, two callers.
+ */
+export function listSourceFiles(): string[] {
   // `--others --exclude-standard` picks up files that are not committed yet,
   // so the archive reflects the working tree rather than the last commit.
   // `--exclude-standard` still honours .gitignore (node_modules, dist, …).
@@ -94,4 +105,9 @@ function main(): void {
   console.log(`Wrote ${paths.length} files (${kb} KB) → ${relative(ROOT, OUTPUT)}`);
 }
 
-main();
+// Write only when invoked as a script (`npm run kit:zip`). Importing this module
+// — as `tests/kit-zip.test.ts` does to read the manifest — must never rewrite the
+// archive, or the test would silently "fix" the very staleness it checks for.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
