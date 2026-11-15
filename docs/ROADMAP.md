@@ -10,7 +10,7 @@ own.
 | 2 | Cast & wardrobe depth | ✅ done |
 | 3 | Environment library | ✅ done (weather deferred) |
 | 4 | Remotion packaging & presets | ✅ done (npm publish open) |
-| 5 | Studio polish, docs site & CI | 🟡 mostly done — docs site & weather open |
+| 5 | Studio polish, docs site & CI | 🟡 mostly done — docs site ✅ done, weather open |
 
 > This file was deleted in commit `e301ed1` and restored from `629708d` during the
 > recovery pass. Statuses above reflect the code as it actually stands, not the
@@ -105,11 +105,17 @@ Done and CI-verified:
   current tree by `npm run kit:zip` and guarded by `tests/kit-zip.test.ts`.
   Rerun it after source or packaged-doc changes.
 
+- **Docs site** with live `<Player>` examples — **✅ complete (Stages 0–4)**.
+  `#/docs`: nine sections, a fully steerable playground, four live explorers, a
+  real preset importer, export recipes. Gated by `npm run smoke:docs`
+  (**222 browser checks**) which runs in CI against the production build, and by
+  two packaging tests that walk the barrel's import graph to prove no docs code
+  leaks into the library. See `docs/DOCS_SITE_PLAN.md`.
+
 Still open:
 
-- **Docs site** with live `<Player>` examples.
 - **Weather controls** (`rain` / `snow` / `fog`) — deferred from Phase 3; no
   `weather` field exists yet.
 
-Phase 5 is not fully closed until the docs site lands; weather can be treated as
-Phase 5.1 / Phase 3.1 if the owner wants it next.
+The docs site has landed, so the only thing between Phase 5 and closed is
+**weather** — treat it as Phase 5.1 / Phase 3.1 if the owner wants it next.

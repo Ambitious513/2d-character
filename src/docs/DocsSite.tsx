@@ -663,7 +663,7 @@ function Architecture({ castCount }: { castCount: number }) {
             <ul className="arch-list">
               <li>
                 <Check size={14} />
-                <span><b>81 unit tests</b> — determinism, IK foot-lock, lip-sync timing, preset migration, packaging.</span>
+                <span><b>83 unit tests</b> — determinism, IK foot-lock, lip-sync timing, preset migration, packaging (the barrel is walked to prove no app code leaks in).</span>
               </li>
               <li>
                 <Check size={14} />
@@ -671,7 +671,7 @@ function Architecture({ castCount }: { castCount: number }) {
               </li>
               <li>
                 <Check size={14} />
-                <span><b>Browser smoke</b> — the studio at <code>/</code>, desktop and mobile.</span>
+                <span><b>Browser smoke</b> — the studio at <code>/</code> and this docs site, desktop and mobile, every control driven for real.</span>
               </li>
               <li>
                 <Check size={14} />

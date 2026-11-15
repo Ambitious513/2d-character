@@ -48,8 +48,23 @@ export const MyRoot = () => (
 ```bash
 npm install
 npm run dev        # visual studio  → http://localhost:5173
+                   # docs site      → http://localhost:5173/#/docs
 npm run studio     # Remotion Studio (props editor, timeline, render button)
 npm run verify     # typecheck + tests + production build
+```
+
+### Live docs site
+
+`#/docs` is a full documentation site with **real running `<Player>` examples** —
+not screenshots. Nine sections: Overview, Quickstart, **Playground** (every prop
+steerable live, with reset / randomize / copy props / preset download),
+Compositions, Cast & motion, Scenes, Presets (with a real `parsePreset` importer),
+Export and Architecture. The studio stays at `/`; the docs are a lazily loaded
+chunk and are **not** part of the library's public surface.
+
+```bash
+npm run dev          # then open http://localhost:5173/#/docs
+npm run smoke:docs   # 222-check browser gate for the docs route
 ```
 
 ## What's in the box
@@ -141,6 +156,7 @@ src/
     parts/        ← face, hair, outfit, accessories
   remotion/       ← compositions, typed factories, Studio root
   ui/             ← visual studio (NOT part of the library)
+  docs/           ← live docs site at #/docs (NOT part of the library)
 tests/            ← determinism, IK, foot-lock, lip-sync, SVG ids, packaging, visual goldens, kit ZIP
 scripts/          ← contact sheets, smoke test, id diagnostics, golden + ZIP generators
 docs/             ← architecture, roadmap, export recipes
@@ -156,14 +172,18 @@ Deeper map: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | module map, data flow, invariants, how to extend |
 | [docs/EXPORT.md](docs/EXPORT.md) | alpha/ProRes/WebM recipes, codecs, troubleshooting |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | the five phases and their status |
+| [docs/DOCS_SITE_PLAN.md](docs/DOCS_SITE_PLAN.md) | the docs site plan and its five completed stages |
+| **[/#/docs](http://localhost:5173/#/docs)** | the live docs site itself — start here to see the kit run |
 
 ## Checks
 
 ```bash
 npm run typecheck            # tsc -b
-npm test                     # 81 unit + visual-regression tests
+npm test                     # 83 unit + visual-regression tests
 npm run build                # production build
 npm run verify               # all three
+npm run smoke                # studio browser smoke (desktop + mobile)
+npm run smoke:docs           # docs browser smoke: 222 checks, desktop + mobile
 npm run check:ids            # gradient-id collision diagnostic
 npm run check:env-ids        # per-scene lighting gradient diagnostic
 npm run update:visual-goldens # regenerate tests/__golden__ after an intended visual change

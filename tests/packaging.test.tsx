@@ -4,6 +4,9 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import * as Kit from '../src/index';
 import {
   PRESET_SCHEMA_VERSION,
@@ -63,6 +66,62 @@ test('the schema is shared, not duplicated', () => {
 test('the barrel does not leak the studio UI', () => {
   assert.ok(!('Inspector' in Kit), 'studio UI is an app, not part of the library');
   assert.ok(!('App' in Kit));
+});
+
+test('the barrel does not leak the docs UI', () => {
+  // `src/docs` is an app consumer, exactly like `src/ui`. A host importing the
+  // kit must never pull a docs page, a Player wrapper or a docs control in.
+  const docsOnly = [
+    'DocsSite', 'DocsPlayer', 'Playground', 'PLAYGROUND_DEFAULT', 'CompositionExplorer',
+    'CastMotionExplorer', 'SceneExplorer', 'PresetPanel', 'CodeBlock', 'SectionHead',
+    'Segmented', 'Slider', 'Select', 'Switch', 'Group', 'playgroundSnippet', 'propsExpression',
+  ];
+  for (const name of docsOnly) {
+    assert.ok(!(name in Kit), `src/index.ts leaks docs UI: ${name}`);
+  }
+});
+
+test('nothing reachable from the barrel imports an app layer', () => {
+  // Stronger than the name checks above: walk the real relative-import graph
+  // from src/index.ts and prove no path reaches src/docs, src/ui or the app
+  // entry points. A re-export or a dynamic import would be caught here even if
+  // the leaked symbol were renamed.
+  const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'src');
+  const entry = join(srcRoot, 'index.ts');
+  const appLayers = [join(srcRoot, 'docs'), join(srcRoot, 'ui')];
+  const appFiles = [join(srcRoot, 'App.tsx'), join(srcRoot, 'main.tsx')];
+
+  /** Resolve a relative specifier the way the bundler does (ts/tsx/index). */
+  const resolveModule = (from: string, spec: string): string | null => {
+    if (!spec.startsWith('.')) return null; // bare package, not our code
+    const base = resolve(dirname(from), spec);
+    for (const candidate of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')]) {
+      if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    }
+    return null;
+  };
+
+  const seen = new Set<string>();
+  const queue = [entry];
+  const offenders: string[] = [];
+  while (queue.length) {
+    const file = queue.pop()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    if (appFiles.includes(file) || appLayers.some((dir) => file.startsWith(dir + sep))) {
+      offenders.push(relative(srcRoot, file));
+      continue;
+    }
+    const source = readFileSync(file, 'utf8');
+    // Static imports, re-exports, side-effect imports and lazy import().
+    for (const match of source.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|^\s*import\s*)['"]([^'"]+)['"]/gm)) {
+      const resolved = resolveModule(file, match[1]);
+      if (resolved) queue.push(resolved);
+    }
+  }
+
+  assert.deepEqual(offenders, [], `the public barrel reaches app code: ${offenders.join(', ')}`);
+  assert.ok(seen.size >= 20, `import walk only visited ${seen.size} files — the scan is broken, not the code clean`);
 });
 
 test('the exported VERSION matches package.json', () => {

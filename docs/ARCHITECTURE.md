@@ -29,6 +29,7 @@ non-deterministic produces flicker that only shows up in the final video.
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ src/ui + src/App.tsx        visual studio (an APP)        │  not exported
+│ src/docs + #/docs           live docs site (an APP)       │  not exported
 ├──────────────────────────────────────────────────────────┤
 │ src/remotion                compositions + factories      │  exported
 ├──────────────────────────────────────────────────────────┤
@@ -38,7 +39,9 @@ non-deterministic produces flicker that only shows up in the final video.
 ```
 
 The studio is a consumer of the library, exactly like a host app would be. If a
-feature only works via the studio, it belongs in the wrong layer.
+feature only works via the studio, it belongs in the wrong layer. The docs site
+is the second such consumer — and the proof that the barrel is enough to build
+on, since every example on it imports from `src/index.ts`.
 
 ---
 
@@ -137,6 +140,26 @@ asserts the barrel does not leak it.
 
 ---
 
+## `src/docs` — the live docs site (`#/docs`)
+
+Lazily loaded by `src/main.tsx` on the `#/docs*` hash routes; `/` and `#/studio`
+still render the studio. Hash routing needs no server rewrites, so one build works
+in dev, in `vite preview` and on any static host.
+
+| File | Responsibility |
+| --- | --- |
+| `DocsSite.tsx` | shell, numbered nav + scrollspy, hero, quickstart, export, architecture, toasts. Owns the playground state so other sections can load a look into it. |
+| `DocsPlayer.tsx` | the real `<Player>` + Stride transport, error fallback, reduced-motion autoplay opt-out, `numberOfSharedAudioTags={0}`. |
+| `Playground.tsx` | controlled component: every prop steerable, live snippet, reset / randomize / copy / download. |
+| `CompositionExplorer.tsx`, `CastMotionExplorer.tsx`, `SceneExplorer.tsx`, `PresetPanel.tsx` | the four live explorers. |
+| `controls.tsx` | shared `Segmented` / `Slider` / `Select` / `Switch` so the explorers cannot drift from the playground. |
+| `snippets.ts` | pure snippet generators — the code shown is generated from the settings being rendered. |
+
+Randomize uses `Math.random()` **in the UI only**: it picks settings. The render
+path stays pure.
+
+---
+
 ## Tests
 
 | Suite | n | Guards |
@@ -144,15 +167,25 @@ asserts the barrel does not leak it.
 | `rig.test.ts` | 6 | IK maths, joint solving |
 | `library.test.tsx` | 24 | determinism, foot-lock, lip-sync, cast, environments |
 | `svg-ids.test.tsx` | 14 | gradient-id collisions across React roots |
-| `packaging.test.tsx` | 28 | public barrel, preset envelope + v1 migration, factories |
+| `packaging.test.tsx` | 30 | public barrel, **docs/studio leak guards**, preset envelope + v1 migration, factories |
 | `export-recipes.test.ts` | 6 | alpha recipes stay valid (PNG frames, 4444 profile) |
 | `visual.test.tsx` | 2 | 48 golden hashes (cast × motion × emotion, scene × lighting) |
 | `kit-zip.test.ts` | 1 | downloadable ZIP matches the current source tree |
-| **total** | **81** | |
+| **total** | **83** | |
 
-Run `npm run verify` (typecheck + tests + build) before every commit. CI also
-runs the studio browser smoke test and `render-smoke` (10 PNG frames of
-`CharacterOnly`).
+Two of those tests are structural: one asserts no docs symbol is exported, the
+other **walks the relative-import graph from `src/index.ts`** and fails if any
+reachable module touches `src/docs`, `src/ui`, `App.tsx` or `main.tsx`. A renamed
+re-export cannot sneak past it.
+
+Run `npm run verify` (typecheck + tests + build) before every commit. CI also runs:
+
+- `npm run smoke` — the studio at `/`, desktop + mobile.
+- `npm run smoke:docs` — **222 checks** over `#/docs` (`scripts/docs-smoke.mts`),
+  run against the **production build** served by `vite preview`: shell, hero
+  transport, every playground control and action, all four explorers, preset
+  validation/migration, the served kit ZIP, mobile 390×844 and reduced motion.
+- `render-smoke` — 10 real PNG frames of `CharacterOnly`.
 
 ---
 
@@ -180,4 +213,6 @@ inspector. If the meaning of an existing field changes, bump
 - [ ] No new non-determinism in the render path
 - [ ] Every new gradient uses `stableId` with all defining inputs
 - [ ] `npm run verify` green
+- [ ] `npm run smoke` and `npm run smoke:docs` green if you touched UI
+- [ ] `npm run kit:zip` rerun if you changed packaged source or docs
 - [ ] `PROGRESS.md` updated

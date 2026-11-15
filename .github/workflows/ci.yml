@@ -67,7 +67,7 @@ jobs:
           test "$(find renders/ci-test -name '*.png' | wc -l)" -eq 10
 
   browser-smoke:
-    name: Studio browser smoke test
+    name: Browser smoke (studio + docs)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,13 +88,30 @@ jobs:
           npm run dev &
           npx --yes wait-on http://localhost:5173 --timeout 120000
 
-      - name: Run smoke test
+      - name: Run studio smoke test
         run: npm run smoke
+
+      # The docs page mounts five Remotion Players at once, so it is smoke-tested
+      # against the production bundle rather than the dev server: it is the artefact
+      # visitors actually get, it exercises the lazy docs chunk, and it keeps the
+      # peak memory of this job well inside the runner.
+      - name: Build the site
+        run: npm run build
+
+      - name: Serve the production build
+        run: |
+          npm run preview &
+          npx --yes wait-on http://localhost:4173 --timeout 120000
+
+      - name: Run docs smoke test
+        run: npm run smoke:docs
+        env:
+          BASE_URL: http://localhost:4173
 
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: studio-screenshots
+          name: browser-screenshots
           path: screenshots/
           if-no-files-found: ignore

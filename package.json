@@ -20,6 +20,7 @@
     "test:watch": "tsx --test --watch tests/*.test.ts tests/*.test.tsx",
     "update:visual-goldens": "tsx scripts/update-visual-goldens.ts",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:docs": "tsx scripts/docs-smoke.mts",
     "contact-sheet": "tsx scripts/contact-sheet.tsx",
     "verify": "npm run typecheck && npm test && npm run build",
     "scene-sheet": "tsx scripts/scene-sheet.tsx",

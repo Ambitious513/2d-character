@@ -17,7 +17,9 @@ pushed on its own; nothing is held back until the end.
 | 1 | Hash routing, docs shell + scrollspy, hero, quickstart, export, architecture, footer, studio Docs link. `DocsPlayer`, `CodeBlock`, `snippets.ts`, `parts.tsx`, `docs.css` landed here because the hero is a live Player. | ✅ done & pushed, CI green | `73a58db` |
 | 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ✅ done & pushed | `86f266f` |
 | 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | ✅ done & pushed — all four explorers written **and mounted**, verified in a real browser (102 checks, 0 console/page errors) | `fb64cd8` → `d11bdab` → verification commit |
-| 4 | `scripts/docs-smoke.mjs`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ⬜ **next — start here** | — |
+| 4 | `scripts/docs-smoke.mts`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ✅ done & pushed — **222 browser checks, 0 failures** | Stage 4 commit |
+
+**The docs site is complete. All five stages are done.**
 
 ### What Stage 1 actually shipped
 
@@ -117,8 +119,59 @@ corrected, and in two cases made stronger:
 | every composition tab has ≥5 prop chips | `SceneOnly` genuinely takes four (`scene`, `timeOfDay`, `parallax`, `direction`) | assert ≥4 **and** that a tab-specific prop is present |
 | downloaded preset contains `pip`/`jump` | the JSON was only *validated*, never loaded; the button exports the playground's look by design (§5) | load the validated look first, then assert the download round-trips it **and** the filename |
 
-The harness is committed as real source (`scripts/docs-stage3-check.mts`,
-typechecked) but **not yet wired into CI or `package.json`** — that is Stage 4.
+The harness was committed as real source (`scripts/docs-stage3-check.mts`,
+typechecked) but not wired into CI or `package.json` — that was Stage 4, and it
+is now done: see below.
+
+### What Stage 4 actually shipped
+
+- **`scripts/docs-smoke.mts`** — the Stage 3 harness promoted (`git mv`, history
+  preserved) into the permanent docs gate and widened from 102 to **222 checks**.
+  It now also covers everything Stages 1–2 had only ever verified by hand: the
+  shell, title, nav numbering, brand version, footer stats, the hero Player's
+  full transport (autoplay, pause, restart, scrub), deep links landing below the
+  fixed topbar, scrollspy + `aria-current`, quickstart copy (asserted against the
+  real clipboard), **every playground control** (7 selects, 8 sliders, 3
+  switches, 2 segmented groups, 7 accessory chips, 6 colour pickers, dialogue),
+  keyboard slider operation, the derived `speechFrames()` count, the alpha-plate
+  switch, all four actions (copy / download / randomize / **reset fidelity against
+  a full pre-interaction snapshot**), the export recipes + a real HTTP fetch of
+  the served kit ZIP, the architecture section, the studio round-trip, mobile
+  390×844 (including driving the playground on a phone) and
+  `prefers-reduced-motion` autoplay opt-out.
+  - **Naming deviation, deliberate:** the plan said `docs-smoke.mjs`; it shipped
+    as **`.mts`** so the harness stays inside `tsc -b` (PROGRESS rule 10). `tsc`
+    immediately earned its keep by catching three real harness defects.
+  - Expectations are derived from the library (`PRESETS`, `MOTIONS`, `SCENES`,
+    `HAIR_STYLES`, `OUTFITS`, `BUILDS`, `listCharacters()`,
+    `resolveDialogueComposition`, `speechFrames`, `parsePreset`) — not typed in.
+- **`npm run smoke:docs`** (`tsx scripts/docs-smoke.mts`), `BASE_URL` overridable.
+- **CI** — `browser-smoke` is now `Browser smoke (studio + docs)`: studio smoke on
+  the dev server, then `npm run build` + `npm run preview` and the docs smoke
+  against the **production bundle** on :4173. That tests the artefact visitors
+  get, exercises the lazy docs chunk, and keeps peak memory low (five Players mount
+  at once). Screenshots upload as `browser-screenshots` (was `studio-screenshots`).
+- **Packaging guard** — `tests/packaging.test.tsx` gained two tests: a docs-symbol
+  leak check, and a **transitive relative-import walk from `src/index.ts`** proving
+  no reachable module touches `src/docs`, `src/ui`, `App.tsx` or `main.tsx`. Both
+  were mutation-tested: adding `export { playgroundSnippet } from './docs/snippets'`
+  to the barrel makes both fail; reverting makes both pass. Suite: **81 → 83**.
+- **Docs** — README (docs route, `smoke:docs`, 83 tests), PROGRESS, ROADMAP
+  (Phase 5 docs site closed), ARCHITECTURE (docs layer + coverage), and the docs
+  site's own Architecture "Coverage" card (81 → 83, both browser smokes).
+- **Kit ZIP** regenerated from the finished tree.
+
+**Verified for Stage 4 (actually run):** `tsc -b` clean · **83/83 tests** ·
+`npm run build` (docs chunk 160.7 kB) · `npm run smoke:docs` against the production
+build → **222 checks passed, 0 failed, zero console/page errors**, 15 screenshots.
+
+Three harness assertions were wrong, not the app — fixed in the harness:
+
+| Assertion | Reality | Correction |
+| --- | --- | --- |
+| `getByRole('button', {name:'Reset'})` | "Download **preset**" also matches — Playwright name matching is a substring | `exact: true` on all four action buttons |
+| alpha plate keeps/draws no character | `pg.locator()` re-scoped an already-`PG`-prefixed selector, so both checks were **vacuous** | use `page.locator()`; the character check now really asserts |
+| export copy fires a toast | Export `CodeBlock`s intentionally have no `onCopied` handler; the button owns the state | assert the button reads "Copied" **and** the clipboard equals the recipe command |
 
 
 ---
