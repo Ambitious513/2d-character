@@ -11,9 +11,10 @@ repo is in, what was just done, and exactly where to continue.
   from a fresh clone of `5501430`: typecheck clean, **85/85 tests**, build ok
   (docs chunk 160.80 kB / gzip 46.11 kB). CI run **23** was red on the two new
   kit-ZIP guards — **build-artifact drift, not a code bug** — fixed by
-  regenerating the archive in this commit (see "CI fix" below). `browser-smoke`
-  (studio + docs, 222 checks) passed even in that red run. Phase 5's four
-  deliverables remain done and CI-verified (`render-smoke` included).
+  regenerating the archive in `4a10194`. **CI run 24 (`4a10194`) is fully green:
+  all three jobs**, `verify` 85/85, `browser-smoke` 222 checks / 0 failed,
+  `render-smoke` 10/10 PNGs. Phase 5's four deliverables remain done and
+  CI-verified.
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
   record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
@@ -21,7 +22,7 @@ repo is in, what was just done, and exactly where to continue.
   the rest of Stage 3 → `6d344e9` Stage 3 verification + repo cleanup →
   `ca8e3a1` CI record → `1788c4f` **Stage 4** → `b5f4e01` Stage 4 independent
   verification + handoff truth-up → `5501430` uploads junk removal →
-  **kit-ZIP regeneration (this commit)**.
+  `4a10194` kit-ZIP regeneration (CI green again) → **CI record (this commit)**.
 - **Next work:** **weather** (`rain` / `snow` / `fog`) — the last open Phase 5
   item. The docs site is finished; do **not** redo any stage of it. Two owner
   decisions remain open (npm publish, v1 shims). See "Where to continue" below.
@@ -100,7 +101,7 @@ See rule 11 and "CI fix" below.
 
 ---
 
-## CI fix — kit-ZIP drift after the doc truth-up (2026-11-15, this commit)
+## CI fix — kit-ZIP drift after the doc truth-up (2026-11-15, `4a10194`)
 
 **Scope: get CI green again. No source, render-path, app or test changes.**
 
@@ -147,6 +148,28 @@ turned CI red a second time.
 
 Not re-run in this sandbox (unchanged, and CI covers both): `render-smoke` and
 the browser smokes — the 1 GB RAM cap documented below still applies.
+
+### Verified green on GitHub — CI run 24 (`4a10194`)
+
+Read back from the Actions API, not assumed:
+
+| Job | Result | Evidence |
+| --- | --- | --- |
+| Typecheck, test, build | ✅ success (36 s) | `# tests 85 · pass 85 · fail 0`, `tsc -b` clean, `✓ built` |
+| Browser smoke (studio + docs) | ✅ success (124 s) | studio PASS, **222 checks passed, 0 failed**, no console/page errors |
+| Render smoke (PNG sequence) | ✅ success (48 s) | `renders/ci-test/element-0..9.png` — **10/10** |
+
+Run: <https://github.com/Ambitious513/2d-character/actions/runs/43717569511>.
+`render-smoke` ran this time (it was skipped in run 23 because `needs: verify`).
+The remote tree was also diffed against local `HEAD` blob-by-blob: **87 blobs,
+zero mismatches**, no `uploads/` entry.
+
+**New benign CI noise (do not chase as a failure):** the runners now warn
+*"Node.js 20 is deprecated… actions/checkout@v4, actions/setup-node@v4,
+actions/upload-artifact@v4 are being forced to run on Node.js 24"*. Everything
+still passes; bumping those action versions (and `node-version`) is a small
+housekeeping task for whoever touches `ci.yml` next. Not changed here — out of
+scope for a drift fix.
 
 ---
 
