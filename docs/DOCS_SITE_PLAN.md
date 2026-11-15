@@ -15,8 +15,8 @@ pushed on its own; nothing is held back until the end.
 | --- | --- | --- | --- |
 | 0 | Plan pushed before any implementation code | ✅ done | `43d5e9a` |
 | 1 | Hash routing, docs shell + scrollspy, hero, quickstart, export, architecture, footer, studio Docs link. `DocsPlayer`, `CodeBlock`, `snippets.ts`, `parts.tsx`, `docs.css` landed here because the hero is a live Player. | ✅ done & pushed, CI green | `73a58db` |
-| 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ✅ done & pushed | this commit |
-| 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | ⬜ next | — |
+| 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ✅ done & pushed | `86f266f` |
+| 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | 🟡 in progress — `CompositionExplorer` + `CastMotionExplorer` recovered and pushed, not yet mounted; `SceneExplorer` + `PresetPanel` still to write | recovery commit |
 | 4 | `scripts/docs-smoke.mjs`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ⬜ | — |
 
 ### What Stage 1 actually shipped

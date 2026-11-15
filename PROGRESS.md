@@ -15,8 +15,10 @@ repo is in, what was just done, and exactly where to continue.
   `ubuntu-latest`.
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 (CI run 43636701309
-  green) → `582a57d` render-smoke handoff record → **docs truth-up (this
-  commit)**. GitHub serves real source; the tarballs are gone.
+  green) → `582a57d` render-smoke handoff record → `9ecaaaf` docs truth-up →
+  `43d5e9a` docs plan → `73a58db` docs Stage 1 → `86f266f` docs Stage 2 →
+  **Stage 3 recovery (this commit)**. GitHub serves real source; the tarballs
+  are gone.
 
 > ## ✅ Push access resolved (2026-11-15)
 >
@@ -60,7 +62,10 @@ Do **not** redo those Phase 5 items. The remaining roadmap work is:
 1. **Docs site** with live `<Player>` examples — **in progress, staged and
    pushed**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table; Stage 1
    (routing + shell + live hero, CI green) and Stage 2 (live playground) are on
-   `main`. Next: Stage 3, the example explorers and preset panel.
+   `main`. Stage 3 is half-landed: `CompositionExplorer` and `CastMotionExplorer`
+   were recovered from the cut-off session and are committed but **not yet
+   mounted**; `SceneExplorer` and `PresetPanel` are still to write. Then Stage 4
+   (docs smoke, CI, handoff docs, kit ZIP).
 2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
@@ -127,6 +132,33 @@ horizontal overflow and no console/page errors. Stage 1's CI run
 
 Still open in this stage plan: explorers + presets (Stage 3), docs smoke + CI +
 handoff docs + kit ZIP (Stage 4).
+
+**Stage 3 recovery (2026-11-15, this commit).**
+
+> The Stage 2 session was cut off by a usage limit **after writing two of Stage
+> 3's four explorers**. It never wired them into `DocsSite` and never pushed; the
+> only record was `studio in progress.tar.gz`, uploaded to the repo root by hand
+> (commit `269e429`).
+
+That archive was unpacked outside the repo and diffed file-by-file against
+`main`. The **entire** delta was:
+
+| Recovered | State |
+| --- | --- |
+| `src/docs/CompositionExplorer.tsx` (241 lines) | complete, self-contained, typechecks — five composition tabs, derived dialogue duration, prop chips, snippets |
+| `src/docs/CastMotionExplorer.tsx` (247 lines) | complete, self-contained, typechecks — six cast cards with live `CharacterHead`, three reference-sheet tabs, character selector |
+| `screenshots/*.png` (19 files) | generated verification artefacts, **gitignored on purpose** — not committed |
+| `tsconfig.tsbuildinfo` | generated, gitignored |
+
+Everything else in the archive was byte-identical to `main`, so nothing else was
+lost. Both recovered files are committed here **as real source, unmounted**:
+`DocsSite.tsx` is unchanged, so the docs page renders exactly as it did at Stage
+2 and no half-finished UI ships. Mounting them, plus `SceneExplorer` and
+`PresetPanel`, is the rest of Stage 3.
+
+`studio in progress.tar.gz` is **deleted in this commit** — rule 6 below still
+holds: never commit a tarball. It remains retrievable from git history at
+`269e429` if anyone ever needs the original snapshot.
 
 ---
 
