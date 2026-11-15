@@ -7,18 +7,21 @@ repo is in, what was just done, and exactly where to continue.
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — the docs site is **complete (Stages 0–4)**. Independently
-  re-verified from a fresh clone: typecheck clean, **83/83 tests**, build ok
-  (docs chunk 160.80 kB), **docs smoke 222/222 checks, 0 failures, zero
-  console/page errors**, studio smoke passes. Phase 5's four deliverables remain
-  done and CI-verified (`render-smoke` included).
+- **State:** ✅ green — the docs site is **complete (Stages 0–4)**. Re-verified
+  from a fresh clone of `5501430`: typecheck clean, **85/85 tests**, build ok
+  (docs chunk 160.80 kB / gzip 46.11 kB). CI run **23** was red on the two new
+  kit-ZIP guards — **build-artifact drift, not a code bug** — fixed by
+  regenerating the archive in this commit (see "CI fix" below). `browser-smoke`
+  (studio + docs, 222 checks) passed even in that red run. Phase 5's four
+  deliverables remain done and CI-verified (`render-smoke` included).
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
   record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
   `86f266f` Stage 2 → `fb64cd8` Stage 3 recovery → `d11bdab` owner hand-upload of
   the rest of Stage 3 → `6d344e9` Stage 3 verification + repo cleanup →
-  `ca8e3a1` CI record → `1788c4f` **Stage 4** → **Stage 4 independent
-  verification + handoff truth-up (this commit)**.
+  `ca8e3a1` CI record → `1788c4f` **Stage 4** → `b5f4e01` Stage 4 independent
+  verification + handoff truth-up → `5501430` uploads junk removal →
+  **kit-ZIP regeneration (this commit)**.
 - **Next work:** **weather** (`rain` / `snow` / `fog`) — the last open Phase 5
   item. The docs site is finished; do **not** redo any stage of it. Two owner
   decisions remain open (npm publish, v1 shims). See "Where to continue" below.
@@ -90,9 +93,64 @@ The remaining roadmap work is:
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
 
+⚠️ **Before you commit anything:** if you edited *any* tracked file — even a doc
+— run `npm run kit:zip` and commit `public/stride-remotion-kit.zip` in the same
+commit. The ZIP guard compares the archive against the **whole working tree**.
+See rule 11 and "CI fix" below.
+
 ---
 
-## Stage 4 independent verification + handoff truth-up (2026-11-15, this commit)
+## CI fix — kit-ZIP drift after the doc truth-up (2026-11-15, this commit)
+
+**Scope: get CI green again. No source, render-path, app or test changes.**
+
+`b5f4e01` (handoff truth-up, new `PROJECT-REVIEW.md`) and `5501430` (junk
+removal) both landed **after** the ZIP was last generated, so the archive no
+longer matched the tree. The full-tree guards added in `b5f4e01` did exactly the
+job they were written for — CI run **23** on `5501430`, `verify` job, "Unit
+tests" step:
+
+```
+not ok 8 - the ZIP contains exactly the current source tree — no missing or extra file
+    ZIP is missing 1 tracked file(s) — run `npm run kit:zip`: PROJECT-REVIEW.md
+not ok 9 - every shipped file is byte-identical to the working tree
+    ZIP content is stale for 1 file(s) — run `npm run kit:zip`: PROGRESS.md
+# tests 85 · pass 83 · fail 2
+```
+
+That failure was **reproduced verbatim in a fresh clone before touching
+anything**, which is what proves it was artifact drift and not a code defect:
+typecheck was clean, the other 83 tests passed, and `browser-smoke` (studio +
+docs, 222 checks) was green in the same run. `render-smoke` was skipped only
+because it `needs: verify`.
+
+**Fix:** `npm run kit:zip` — **85 files** shipped (87 tracked, minus the ZIP
+itself and `screenshots/.gitkeep`, both excluded on purpose). The archive is
+byte-reproducible (sorted entries, fixed 2020-01-01 mtime), so this is a
+content-only change.
+
+Verified locally with the exact CI gate, `npm run verify`:
+
+```
+npm ci                                      # 273 packages
+npm run typecheck                           # tsc -b, clean
+npm test                                    # 85/85 pass, 0 fail (kit-zip 3/3)
+npm run build                               # ✓ docs chunk 160.80 kB (gzip 46.11)
+```
+
+**The trap worth remembering:** the guards compare the ZIP against the *working
+tree*, so editing any tracked file — including this handoff — re-stales the
+archive. Order matters: **edit docs first → `npm run kit:zip` → `npm run verify`
+→ commit the docs and the ZIP together.** That is why this entry and the
+regenerated archive are in one commit; a "docs only" commit here would have
+turned CI red a second time.
+
+Not re-run in this sandbox (unchanged, and CI covers both): `render-smoke` and
+the browser smokes — the 1 GB RAM cap documented below still applies.
+
+---
+
+## Stage 4 independent verification + handoff truth-up (2026-11-15, `b5f4e01`)
 
 **Scope, chosen by the owner: fix the three flagged issues, push, stop.** No
 weather, no npm publish, no v1 shim removal, no render-path or app-code changes.
@@ -718,7 +776,8 @@ independent verification:
    completed all three jobs, render included.
 3. ~~**Refresh `public/stride-remotion-kit.zip`.**~~ **Done** — regenerated from
    the current tree by `npm run kit:zip`, with `tests/kit-zip.test.ts` guarding
-   it.
+   it. Regenerated again in this commit after the doc truth-up drifted it (CI
+   run 23 → green); the guard now compares the **whole tree**, byte for byte.
 4. ~~**Keyboard-first studio UX.**~~ **Done** — `useStudioHotkeys` in
    `src/ui/Controls.tsx`, wired in `src/App.tsx`.
 
@@ -777,6 +836,12 @@ Still open, in recommended order:
 10. **Keep verification harnesses as real source.** A 280-line browser check sat
     in `scratch/` and was nearly deleted with the junk. `scripts/` is typechecked
     by `tsc -b`; scratch dirs are not, and are now gitignored.
+11. **Regenerate the kit ZIP after *any* tracked-file edit, in the same commit.**
+    `tests/kit-zip.test.ts` compares `public/stride-remotion-kit.zip` against the
+    whole working tree — missing file, extra file, or a single changed byte all
+    fail. So a "docs only" commit turns CI red (that was run 23). Order: edit
+    docs → `npm run kit:zip` → `npm run verify` → commit docs **and** the ZIP
+    together.
 
 ## Key facts you will need
 
