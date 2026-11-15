@@ -114,6 +114,12 @@ npm run smoke                   # studio: PASS (desktop + mobile)
 npx tsx scripts/docs-stage3-check.mts   # 102 checks PASS, 0 console/page errors
 ```
 
+**CI confirmed green on the pushed commit `6d344e9`** —
+[run 19 / 43704222675](https://github.com/Ambitious513/2d-character/actions/runs/43704222675):
+`Typecheck, test, build` ✅, `Studio browser smoke test` ✅,
+`Render smoke (PNG sequence)` ✅. The remote tree was re-read through the API:
+86 files, no `.gh.py`, no `scratch/`, no `uploads/`, harness present.
+
 The docs harness covers: nine-section nav and sequential numbering; all five
 composition tabs (one Player each, correct slate geometry, tab-specific prop
 chips, matching snippet, no player error); derived dialogue duration (323
