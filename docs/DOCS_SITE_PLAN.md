@@ -16,8 +16,8 @@ pushed on its own; nothing is held back until the end.
 | 0 | Plan pushed before any implementation code | ✅ done | `43d5e9a` |
 | 1 | Hash routing, docs shell + scrollspy, hero, quickstart, export, architecture, footer, studio Docs link. `DocsPlayer`, `CodeBlock`, `snippets.ts`, `parts.tsx`, `docs.css` landed here because the hero is a live Player. | ✅ done & pushed, CI green | `73a58db` |
 | 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ✅ done & pushed | `86f266f` |
-| 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | 🟡 in progress — `CompositionExplorer` + `CastMotionExplorer` recovered and pushed, not yet mounted; `SceneExplorer` + `PresetPanel` still to write | recovery commit |
-| 4 | `scripts/docs-smoke.mjs`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ⬜ | — |
+| 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | ✅ done & pushed — all four explorers written **and mounted**, verified in a real browser (102 checks, 0 console/page errors) | `fb64cd8` → `d11bdab` → verification commit |
+| 4 | `scripts/docs-smoke.mjs`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ⬜ **next — start here** | — |
 
 ### What Stage 1 actually shipped
 
@@ -76,6 +76,50 @@ the downloaded preset JSON), reset fidelity, and mobile 390×844 with zero
 horizontal overflow and no console/page errors.
 
 **Resume rule:** continue at the first ⬜ row. Do not re-do a ✅ row.
+
+### What Stage 3 actually shipped
+
+All four explorers are written **and mounted** in `DocsSite.tsx`; the nav is the
+full nine sections (Overview, Quickstart, Playground, Compositions, Cast &
+motion, Scenes, Presets, Export, Architecture).
+
+- `src/docs/CompositionExplorer.tsx` — five tabs (`WalkScene`, `CharacterOnly`,
+  `SceneOnly`, `DialogueScene`, `TalkingHead`), one Player mounted at a time,
+  per-tab prop chips and copyable snippet. Dialogue duration comes from
+  `resolveDialogueComposition` (323 frames for `DEFAULT_SCRIPT`), never a
+  hand-typed number. Secondary examples start paused.
+- `src/docs/CastMotionExplorer.tsx` — six cast cards with a real head SVG and
+  palette swatches, three sheet tabs (`CastSheet`, `MotionSheet`,
+  `EmotionSheet`), character picker only where the sheet supports it. Clicking a
+  card loads that character into the playground and scrolls there.
+- `src/docs/SceneExplorer.tsx` — live `SceneOnly` plate, scene / lighting /
+  parallax / speed / direction controls, swatches read from `paletteFor()` (the
+  renderer's own lookup, not a copy). "Send to playground" patches **only** the
+  scene fields, keeping the visitor's character and performance.
+- `src/docs/PresetPanel.tsx` — all 8 built-in presets, plus a JSON importer
+  calling the real `parsePreset`, so validation errors and the v1 → v2 migration
+  note are exactly what a consumer's code gets. "Download current preset"
+  exports the **playground's** look via `serializePresetJSON`.
+- `src/docs/controls.tsx` — shared `Segmented` / `Slider` / switch primitives
+  extracted from `Playground` (which shrank 628 → 473 lines) so the explorers and
+  the playground cannot drift apart.
+
+**Verified 2026-11-15** — `scripts/docs-stage3-check.mts`, 102 checks, zero
+console/page errors, desktop 1440×960 + mobile 390×844 with zero horizontal
+overflow. Typecheck clean, 81/81 tests, build succeeds (docs chunk 160.7 kB),
+and the existing studio smoke still passes.
+
+Three assertions in the recovered scratch harness were **wrong, not the app** —
+corrected, and in two cases made stronger:
+
+| Original assertion | Reality | Correction |
+| --- | --- | --- |
+| every composition tab has ≥5 prop chips | `SceneOnly` genuinely takes four (`scene`, `timeOfDay`, `parallax`, `direction`) | assert ≥4 **and** that a tab-specific prop is present |
+| downloaded preset contains `pip`/`jump` | the JSON was only *validated*, never loaded; the button exports the playground's look by design (§5) | load the validated look first, then assert the download round-trips it **and** the filename |
+
+The harness is committed as real source (`scripts/docs-stage3-check.mts`,
+typechecked) but **not yet wired into CI or `package.json`** — that is Stage 4.
+
 
 ---
 

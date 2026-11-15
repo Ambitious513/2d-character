@@ -7,18 +7,32 @@ repo is in, what was just done, and exactly where to continue.
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — Phase 5's four named deliverables are pushed and
-  **CI run #9 fully green**, including `render-smoke`: typecheck clean,
-  **81/81 tests pass**, build succeeds, `check:ids` 6/6 unique,
-  `check:env-ids` all unique, visual goldens byte-stable, kit ZIP regenerated
-  from the current tree, and a real Remotion render of 10 PNG frames on
-  `ubuntu-latest`.
+- **State:** ✅ green — docs site **Stage 3 is complete, mounted and now actually
+  verified in a browser** (102 checks, zero console/page errors). Typecheck
+  clean, **81/81 tests**, build succeeds, studio smoke passes. Phase 5's four
+  deliverables remain done and CI-verified (`render-smoke` included).
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
-  handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 (CI run 43636701309
-  green) → `582a57d` render-smoke handoff record → `9ecaaaf` docs truth-up →
-  `43d5e9a` docs plan → `73a58db` docs Stage 1 → `86f266f` docs Stage 2 →
-  **Stage 3 recovery (this commit)**. GitHub serves real source; the tarballs
-  are gone.
+  handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
+  record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
+  `86f266f` Stage 2 → `fb64cd8` Stage 3 recovery → `d11bdab` owner hand-upload of
+  the rest of Stage 3 → **Stage 3 verification + repo cleanup (this commit)**.
+- **Next work:** docs site **Stage 4** (docs smoke script + CI + handoff docs +
+  kit ZIP). See `docs/DOCS_SITE_PLAN.md` §0.
+
+> ## 🔐 Credential hygiene (2026-11-15)
+>
+> The owner's hand-upload `d11bdab` committed **`.gh.py` with a hard-coded
+> classic PAT** to this public repo. That token was already **dead on arrival**
+> (`401 Bad credentials` on every call) — GitHub secret scanning revokes classic
+> PATs the moment they reach a public repo.
+>
+> `.gh.py` is **deleted in this commit**, and the tree was scanned: no `ghp_…` /
+> `github_pat_…` string remains in any tracked file.
+>
+> **Rules:** never write a token into a tracked file — pass it via the
+> environment or an untracked file outside the repo. Rotate any token pasted
+> into chat once the work lands. The token used for this session should be
+> rotated by the owner now that the push is done.
 
 > ## ✅ Push access resolved (2026-11-15)
 >
@@ -59,17 +73,119 @@ including **48 visual golden hashes**.
 
 Do **not** redo those Phase 5 items. The remaining roadmap work is:
 
-1. **Docs site** with live `<Player>` examples — **in progress, staged and
-   pushed**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table; Stage 1
-   (routing + shell + live hero, CI green) and Stage 2 (live playground) are on
-   `main`. Stage 3 is half-landed: `CompositionExplorer` and `CastMotionExplorer`
-   were recovered from the cut-off session and are committed but **not yet
-   mounted**; `SceneExplorer` and `PresetPanel` are still to write. Then Stage 4
-   (docs smoke, CI, handoff docs, kit ZIP).
+1. **Docs site** with live `<Player>` examples — **Stages 0–3 done, mounted and
+   verified**. See `docs/DOCS_SITE_PLAN.md` §0 for the live stage table. Only
+   **Stage 4** is left: promote `scripts/docs-stage3-check.mts` into
+   `scripts/docs-smoke.mjs`, add `npm run smoke:docs`, wire it into the CI
+   browser job, add the docs-leak packaging guard, and update
+   README / ROADMAP / ARCHITECTURE. (Kit ZIP was already refreshed this session.)
 2. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
+
+---
+
+## Stage 3 verification + repo cleanup (2026-11-15, this commit)
+
+**Scope, chosen by the owner: verify and document Stage 3, then stop.** No
+Stage 4 wiring, no weather, no npm publish, no v1 shim removal, no render-path
+changes.
+
+### The handoff was stale — the tree was ahead of it
+
+`PROGRESS.md` and the plan said Stage 3 was half-landed (two explorers written,
+unmounted). That was true at `fb64cd8`, but the owner then hand-uploaded
+`d11bdab` ("Update with agent's latest work"), which contained **the rest of
+Stage 3**: `SceneExplorer.tsx`, `PresetPanel.tsx`, the shared `controls.tsx`
+extraction, and the `DocsSite.tsx` wiring that mounts all four explorers.
+
+So Stage 3 was **code-complete but never verified, never recorded, and not
+CI-covered**. Lesson for the next agent: **diff the tree against these notes
+before trusting them** — an owner hand-upload can move `main` past the handoff.
+
+### What was verified (actually run, not inspected)
+
+```
+npx tsc -b                      # clean
+npm test                        # 81/81 pass, 0 fail
+npm run build                   # ✓ built — docs chunk 160.70 kB (was 134 kB at Stage 2)
+npm run smoke                   # studio: PASS (desktop + mobile)
+npx tsx scripts/docs-stage3-check.mts   # 102 checks PASS, 0 console/page errors
+```
+
+The docs harness covers: nine-section nav and sequential numbering; all five
+composition tabs (one Player each, correct slate geometry, tab-specific prop
+chips, matching snippet, no player error); derived dialogue duration (323
+frames) quoted identically in the note; secondary examples paused until played;
+six cast cards with real head SVGs; all three sheet tabs and the character
+picker; cast-card → playground routing; the scene explorer across all four
+scenes and three lighting passes with palette swatches that follow
+`paletteFor()`; "send to playground" preserving the character; all 8 preset
+cards; and the preset importer's five failure/success paths including v1 → v2
+migration and the download round-trip. Mobile 390×844: zero horizontal overflow
+before **and** after interaction, cast cards stack to one column.
+
+### Three harness assertions were wrong — the app was right
+
+The recovered `scratch/check-s3.mts` failed 3 of 102 checks. All three were bad
+assertions, corrected (and two made stronger) rather than "fixed" in the app:
+
+- **`SceneOnly` prop chips** — the harness demanded ≥5 chips on every tab;
+  `SceneOnly` legitimately documents four (`scene`, `timeOfDay`, `parallax`,
+  `direction`). Now asserts ≥4 **plus** a tab-specific prop, which is a sharper
+  check than the original blanket count.
+- **Downloaded preset (2 checks)** — the harness validated a `pip`/`jump` JSON
+  but never loaded it, then expected the download to contain it. "Download
+  current preset" exports the **playground's** look by design (plan §5). Now the
+  harness loads the validated look first and asserts the download round-trips
+  character, motion **and** filename `stride-pip-jump.json`.
+
+The corrected harness is committed as **`scripts/docs-stage3-check.mts`** (real
+source, typechecked by `tsc -b`, three strict-null issues fixed on the way in).
+It is deliberately **not** wired into `package.json` or CI — Stage 4 does that.
+Keeping it as source is the whole point: this repo has lost finished work three
+times because it lived only in a scratch dir or an archive.
+
+### Repo cleanup (owner-approved)
+
+`d11bdab` also committed the previous agent's entire scratch workspace. Removed:
+
+| Removed | Why |
+| --- | --- |
+| `.gh.py` | hard-coded classic PAT in a public repo (already revoked) |
+| `scratch/prev/**` (174 files) | two nested duplicate copies of the whole project, including stale `PROGRESS.md`, `package-lock.json` and kit ZIPs |
+| `uploads/*.txt` (2 files) | scraped GitHub UI text and a chat-context note; zero references |
+
+**Tracked files: 262 → 85.** `.gitignore` now blocks `scratch/`. Everything
+removed stays retrievable from git history at `d11bdab`. No application source,
+test, or CI workflow was deleted.
+
+### Environment notes worth keeping
+
+- **This sandbox is capped at 1 GB RAM** (cgroup `memory.max` = 1073741824), the
+  same ceiling recorded below. The docs page mounts **five Remotion Players at
+  once**, so `vite dev` + Chromium OOM-crashes the tab (`Target crashed`).
+  **Workaround that works:** `npm run build`, serve `dist/` statically
+  (e.g. `python3 -m http.server 4173 --bind 0.0.0.0`), and run the harness with
+  `BASE_URL=http://localhost:4173`. That frees ~300 MB and all 102 checks pass.
+  Chromium also benefits from `--renderer-process-limit=1` and
+  `--js-flags=--max-old-space-size=320`. This is an environment limit, not a
+  docs defect — CI's larger runners are unaffected.
+- **One studio-smoke flake observed:** the very first run after a cold dev-server
+  start failed clicking `SVG frame` in the export modal with *"element is not
+  stable"* (the modal's entrance animation). Three subsequent runs passed,
+  including against the production build. `d11bdab` touched only `src/docs/**`,
+  so this is a pre-existing animation-timing flake in `scripts/smoke.mjs`, not a
+  Stage 3 regression. If it recurs in CI, wait for the modal animation to settle
+  before clicking — do not weaken the assertion.
+
+### Not done here (deliberately, per the owner's scope)
+
+Stage 4 in full: `scripts/docs-smoke.mjs` + `smoke:docs` + CI step + screenshot
+artifact, the docs-leak assertion in `tests/packaging.test.tsx`, and the
+README / ROADMAP / ARCHITECTURE updates. `README.md` still says "81 tests" and
+does not mention the `#/docs` route yet.
 
 ---
 
@@ -155,6 +271,11 @@ lost. Both recovered files are committed here **as real source, unmounted**:
 `DocsSite.tsx` is unchanged, so the docs page renders exactly as it did at Stage
 2 and no half-finished UI ships. Mounting them, plus `SceneExplorer` and
 `PresetPanel`, is the rest of Stage 3.
+
+> **Superseded (2026-11-15):** the rest of Stage 3 arrived in the owner's
+> hand-upload `d11bdab` and all four explorers are now mounted and verified.
+> This section is kept as history only — see "Stage 3 verification + repo
+> cleanup" above for the current state.
 
 `studio in progress.tar.gz` is **deleted in this commit** — rule 6 below still
 holds: never commit a tarball. It remains retrievable from git history at
@@ -492,7 +613,12 @@ Documentation truth-up (2026-11-15): **done** — `PROGRESS.md`,
 
 Still open, in recommended order:
 
-5. **Docs site** with live `<Player>` examples.
+5. **Docs site — Stage 4 only.** Stages 0–3 are done, mounted and verified
+   (102-check browser harness, `scripts/docs-stage3-check.mts`). What remains:
+   promote that harness to `scripts/docs-smoke.mjs`, add `npm run smoke:docs`,
+   wire it into the CI browser job with the screenshot artifact, add a
+   `tests/packaging.test.tsx` assertion that `src/docs` never leaks into the
+   barrel, and update README / ROADMAP / ARCHITECTURE. Then refresh the kit ZIP.
 6. **Weather** (`rain`/`snow`/`fog`) — the one deferred Phase 3 item. No `weather`
    field exists yet; would need `types.ts` → `schema.ts` → palettes → inspector.
 
@@ -527,6 +653,15 @@ Still open, in recommended order:
    and `*.bundle`.
 7. **Write real commit messages.** History contains `[briefly describe what the
    agent did]` placeholders, which made reconstruction much harder.
+8. **Never write a token into a tracked file.** `.gh.py` shipped a classic PAT to
+   this public repo and GitHub auto-revoked it. Use the environment or an
+   untracked file outside the repo, and rotate anything pasted into chat.
+9. **Diff the tree against these notes before trusting them.** `d11bdab` was an
+   owner hand-upload that moved `main` a whole stage past the written handoff.
+   `git log` + `ls src/docs` takes ten seconds and prevents redoing finished work.
+10. **Keep verification harnesses as real source.** A 280-line browser check sat
+    in `scratch/` and was nearly deleted with the junk. `scripts/` is typechecked
+    by `tsc -b`; scratch dirs are not, and are now gitignored.
 
 ## Key facts you will need
 

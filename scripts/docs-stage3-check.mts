@@ -1,9 +1,28 @@
 /**
- * Stage 3 verification — composition explorer, cast & motion explorer, scene
- * explorer, preset panel. Run with tsx so the expectations can be derived from
- * the library itself rather than from the DOM:
+ * Stage 3 verification harness — the docs explorers, exercised in a real browser.
  *
- *   cd 2d-character && npx tsx ../scratch/check-s3.mjs
+ * Run it against a dev server or a production build:
+ *
+ *   npm run dev                      # or: npm run build && serve dist/
+ *   BASE_URL=http://localhost:5173 npx tsx scripts/docs-stage3-check.mts
+ *
+ * Expectations are derived from the library itself (`PRESETS`, `MOTIONS`,
+ * `listCharacters()`, `resolveDialogueComposition`) rather than hard-coded, so
+ * the harness cannot drift away from the API it is checking. 102 checks cover
+ * the shell, all five composition tabs, the cast/motion sheets, the scene
+ * explorer, the preset panel (including v1 -> v2 migration and the download
+ * round-trip) and mobile 390x844 with zero horizontal overflow.
+ *
+ * Screenshots land in `screenshots/` (gitignored). Exit code is non-zero on any
+ * failed check or any console/page error.
+ *
+ * NOTE: this is the corrected Stage 3 harness, kept as real source so the work
+ * is not lost again. Stage 4 promotes it into `scripts/docs-smoke.mjs` +
+ * `npm run smoke:docs` + a CI step. It is deliberately not wired into CI yet.
+ *
+ * Memory: the docs page mounts five Remotion Players at once. On a 1 GB box a
+ * dev server plus Chromium OOM-crashes the tab ("Target crashed"); verify
+ * against the built `dist/` served statically, which leaves enough headroom.
  */
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
@@ -13,19 +32,19 @@ import {
   MOTIONS,
   listCharacters,
   resolveDialogueComposition,
-} from '../2d-character/src/index';
+} from '../src/index';
 
-const BASE = 'http://localhost:5173';
+const BASE = process.env.BASE_URL || 'http://localhost:5173';
 const errors: string[] = [];
 const ok: string[] = [];
-const check = (name: string, cond: boolean, extra = '') => {
-  (cond ? ok : errors).push(`${cond ? 'PASS' : 'FAIL'} ${name} ${extra}`);
+const check = (name: string, cond: boolean, extra: string | null = '') => {
+  (cond ? ok : errors).push(`${cond ? 'PASS' : 'FAIL'} ${name} ${extra ?? ''}`);
 };
 
 const cast = listCharacters();
 const dialogue = resolveDialogueComposition({ id: 'DocsChat', speakers: ['milo', 'ada'], script: DEFAULT_SCRIPT });
 
-const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] });
+const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--renderer-process-limit=1', '--js-flags=--max-old-space-size=320', '--disable-features=Translate,BackForwardCache', '--mute-audio'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, acceptDownloads: true });
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -47,12 +66,13 @@ check('every section is in the DOM', await page.locator('.docs-section, .docs-he
 /* ---------------- composition explorer ---------------- */
 const CE = '[data-docs-compositions]';
 check('five composition tabs', await page.locator(`${CE} .docs-tab`).count() === 5);
-const expected: Record<string, { slate: string; snippet: string }> = {
-  walk: { slate: '1280×720', snippet: 'WalkScene' },
-  character: { slate: '720×720', snippet: 'CharacterOnly' },
-  scene: { slate: '1280×720', snippet: 'SceneOnly' },
-  dialogue: { slate: `${dialogue.width}×${dialogue.height}`, snippet: 'DialogueComposition' },
-  head: { slate: '720×720', snippet: 'TalkingHead' },
+const expected: Record<string, { slate: string; snippet: string; keyProp: string }> = {
+  walk: { slate: '1280×720', snippet: 'WalkScene', keyProp: 'followCamera' },
+  character: { slate: '720×720', snippet: 'CharacterOnly', keyProp: 'colors' },
+  // SceneOnly genuinely takes four props — scene, timeOfDay, parallax, direction.
+  scene: { slate: '1280×720', snippet: 'SceneOnly', keyProp: 'parallax' },
+  dialogue: { slate: `${dialogue.width}×${dialogue.height}`, snippet: 'DialogueComposition', keyProp: 'gapFrames' },
+  head: { slate: '720×720', snippet: 'TalkingHead', keyProp: 'background' },
 };
 for (const [id, want] of Object.entries(expected)) {
   await page.locator(`#comp-tab-${id}`).click();
@@ -62,7 +82,9 @@ for (const [id, want] of Object.entries(expected)) {
   check(`${id}: slate geometry`, (await page.locator(`${CE} .docs-slate`).textContent())!.includes(want.slate),
     (await page.locator(`${CE} .docs-slate`).textContent())!);
   check(`${id}: snippet matches tab`, (await page.locator(`${CE} .docs-code pre`).textContent())!.includes(want.snippet));
-  check(`${id}: prop chips present`, await page.locator(`${CE} .docs-chips .chip`).count() >= 5);
+  const chipTexts = await page.locator(`${CE} .docs-chips .chip`).allTextContents();
+  check(`${id}: prop chips present`, chipTexts.length >= 4, chipTexts.join(','));
+  check(`${id}: chips are tab-specific`, chipTexts.some((t) => t.includes(want.keyProp)), chipTexts.join(','));
   check(`${id}: no player error`, await page.locator(`${CE} .docs-player-error`).count() === 0);
 }
 // dialogue duration is derived, not typed
@@ -184,7 +206,7 @@ check('preset card routes to the playground', await page.evaluate(() => location
 check('preset card loads its character', await page.locator('#pg-character').inputValue() === night.settings.character);
 check('preset card loads its motion', await page.locator('#pg-motion').inputValue() === night.settings.motion);
 check('preset name shows in the stage bar', (await page.locator('[data-docs-playground] .pg-stage-bar').textContent())!.includes('Night shift'));
-check('preset card marked active', await page.locator(`${PP} .preset-card.active`).textContent().then((t) => t.includes('Night shift')));
+check('preset card marked active', await page.locator(`${PP} .preset-card.active`).textContent().then((t) => (t ?? '').includes('Night shift')));
 
 await page.locator('#docs-presets').scrollIntoViewIfNeeded();
 await page.waitForTimeout(600);
@@ -209,7 +231,7 @@ await page.locator('#preset-json').fill('{"version":2,"settings":{"character":"a
 await page.getByRole('button', { name: 'Validate', exact: true }).click();
 await page.waitForTimeout(300);
 check('bad enum is reported', await page.locator(`${PP} .preset-result.bad li`).count() >= 1,
-  await page.locator(`${PP} .preset-result.bad`).textContent().then((t) => t.slice(0, 90)));
+  await page.locator(`${PP} .preset-result.bad`).textContent().then((t) => (t ?? '').slice(0, 90)));
 // v1 migration
 await page.getByRole('button', { name: 'Paste v1 example' }).click();
 await page.getByRole('button', { name: 'Validate', exact: true }).click();
@@ -230,13 +252,21 @@ await page.getByRole('button', { name: 'Validate', exact: true }).click();
 await page.waitForTimeout(300);
 check('v2 envelope needs no migration',
   (await page.locator(`${PP} .preset-result.ok`).textContent())!.includes('no migration needed'));
-// download current
+// "Download current preset" exports the PLAYGROUND's look, not the textarea.
+// Load the validated v2 envelope first so the round-trip is actually proven.
+await page.locator(`${PP} .preset-result.ok`).getByRole('button', { name: 'Load into playground' }).click();
+await page.waitForTimeout(1800);
+check('v2 import loads into the playground', await page.locator('#pg-character').inputValue() === 'pip');
+check('v2 import loads the motion', await page.locator('#pg-motion').inputValue() === 'jump');
+await page.locator('#docs-presets').scrollIntoViewIfNeeded();
+await page.waitForTimeout(600);
 const dl = page.waitForEvent('download');
 await page.getByRole('button', { name: 'Download current preset' }).click();
 const file = await dl;
 const body = JSON.parse(fs.readFileSync(await file.path(), 'utf8'));
 check('downloaded preset is a v2 envelope', body.version === 2 && body.settings.character === 'pip', file.suggestedFilename());
 check('downloaded preset carries the imported motion', body.settings.motion === 'jump');
+check('download filename tracks the look', file.suggestedFilename() === 'stride-pip-jump.json', file.suggestedFilename());
 check('preset API snippet present', (await page.locator(`${PP} .docs-code pre`).textContent())!.includes('serializePresetJSON'));
 
 /* ---------------- mobile ---------------- */

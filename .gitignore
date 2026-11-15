@@ -39,3 +39,6 @@ handoff/
 recovered/
 *.tar.gz
 *.bundle
+
+# Agent scratch space — verification logs, ad-hoc probes (never commit)
+scratch/
