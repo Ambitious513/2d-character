@@ -17,7 +17,7 @@ pushed on its own; nothing is held back until the end.
 | 1 | Hash routing, docs shell + scrollspy, hero, quickstart, export, architecture, footer, studio Docs link. `DocsPlayer`, `CodeBlock`, `snippets.ts`, `parts.tsx`, `docs.css` landed here because the hero is a live Player. | ✅ done & pushed, CI green | `73a58db` |
 | 2 | Playground: permanently visible control region, scene/alpha switch, reset / randomize / copy props / preset download, live snippet | ✅ done & pushed | `86f266f` |
 | 3 | Composition explorer, cast & motion explorer, scene explorer, preset panel | ✅ done & pushed — all four explorers written **and mounted**, verified in a real browser (102 checks, 0 console/page errors) | `fb64cd8` → `d11bdab` → verification commit |
-| 4 | `scripts/docs-smoke.mts`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ✅ done & pushed — **222 browser checks, 0 failures** | Stage 4 commit |
+| 4 | `scripts/docs-smoke.mts`, `smoke:docs`, CI step, packaging guard, README / PROGRESS / ROADMAP / ARCHITECTURE, kit ZIP refresh | ✅ done & pushed — **235 browser checks, 0 failures** | Stage 4 commit |
 
 **The docs site is complete. All five stages are done.**
 
@@ -50,7 +50,8 @@ has zero horizontal overflow and no console/page errors.
   **Scene & camera** (scene select, time-of-day segmented, parallax, follow
   camera, rig guides), **Speech** (dialogue textarea, derived lip-sync frame
   count, speech rate, subtitles), **Look** (hair / outfit / build selects, seven
-  accessory chips), **Palette** (six colour pickers). 26 live controls.
+  accessory chips), **Palette** (six colour pickers). 27 live controls
+  (weather joined in Phase 5.1).
 - Actions: **Reset**, **Randomize**, **Copy props**, **Download preset** — the
   download is a real v2 envelope from `serializePresetJSON`.
 - Scene ↔ alpha-plate switch: `WalkScene` 1280×720 vs `CharacterOnly` 720×720 on
@@ -126,7 +127,7 @@ is now done: see below.
 ### What Stage 4 actually shipped
 
 - **`scripts/docs-smoke.mts`** — the Stage 3 harness promoted (`git mv`, history
-  preserved) into the permanent docs gate and widened from 102 to **222 checks**.
+  preserved) into the permanent docs gate and widened from 102 to **222 checks** (weather landing in Phase 5.1 widens it to **235**).
   It now also covers everything Stages 1–2 had only ever verified by hand: the
   shell, title, nav numbering, brand version, footer stats, the hero Player's
   full transport (autoplay, pause, restart, scrub), deep links landing below the
@@ -164,6 +165,7 @@ is now done: see below.
 **Verified for Stage 4 (actually run):** `tsc -b` clean · **83/83 tests** ·
 `npm run build` (docs chunk 160.7 kB) · `npm run smoke:docs` against the production
 build → **222 checks passed, 0 failed, zero console/page errors**, 15 screenshots.
+(Phase 5.1 widens the same gate to **235 checks** with the weather landing.)
 
 Three harness assertions were wrong, not the app — fixed in the harness:
 

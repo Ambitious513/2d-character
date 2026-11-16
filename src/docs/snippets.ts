@@ -37,7 +37,7 @@ const SHOWN_KEYS: (keyof SceneSettings)[] = [
   'motion', 'emotion', 'speed', 'stride', 'bounce', 'armSwing', 'scale', 'direction',
   'hair', 'outfit', 'build', 'backpack', 'glasses', 'cap', 'scarf', 'headphones', 'beard', 'freckles',
   'dialogue', 'speechRate', 'seed',
-  'scene', 'timeOfDay', 'parallax', 'guides', 'followCamera', 'showSubtitles',
+  'scene', 'timeOfDay', 'weather', 'parallax', 'guides', 'followCamera', 'showSubtitles',
 ];
 
 /**
@@ -251,13 +251,14 @@ export function sceneSnippet(
   scene: string,
   timeOfDay: string,
   parallax: number,
-  extra: { speed?: number; direction?: number } = {},
+  extra: { speed?: number; direction?: number; weather?: string } = {},
 ): string {
   const lines = [
     `  scene="${scene}"`,
     `  timeOfDay="${timeOfDay}"`,
     `  parallax={${parallax}}`,
   ];
+  if (extra.weather !== undefined && extra.weather !== 'clear') lines.push(`  weather="${extra.weather}"`);
   if (extra.speed !== undefined && extra.speed !== 1) lines.push(`  speed={${extra.speed}}`);
   if (extra.direction !== undefined && extra.direction !== 1) lines.push(`  direction={${extra.direction}}`);
   return `import { SceneOnly } from './src';

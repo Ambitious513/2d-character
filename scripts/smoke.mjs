@@ -45,6 +45,13 @@ await page.waitForSelector('[data-character="milo"][transform="scale(-1 1)"]');
 await page.getByRole('button', { name: 'Run', exact: true }).click();
 await page.waitForTimeout(150);
 if (!(await page.locator('.stage-meta').textContent()).includes('Run cycle')) errors.push('motion label not updated');
+
+// Weather (the wrapper attribute is on the stage; the overlay rides the scene view)
+await page.getByRole('button', { name: 'Rain', exact: true }).click();
+await page.waitForSelector('.player-wrap[data-weather="rain"]');
+await page.getByRole('button', { name: 'Clear', exact: true }).click();
+await page.waitForSelector('.player-wrap[data-weather="clear"]');
+if (await page.locator('svg [data-weather-pass]').count()) errors.push('clear weather still drew an overlay');
 await page.getByRole('button', { name: 'Character only' }).click();
 await page.waitForSelector('.checkerboard [data-character="milo"]');
 await page.screenshot({ path: 'screenshots/character-only.png', fullPage: true });

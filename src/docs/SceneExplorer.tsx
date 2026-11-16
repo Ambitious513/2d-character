@@ -11,8 +11,8 @@
 
 import { useMemo, useState } from 'react';
 import { ArrowUpRight, Layers, Sun } from 'lucide-react';
-import { SCENES, SceneOnly, TIMES_OF_DAY, paletteFor } from '../index';
-import type { SceneId, SceneSettings, TimeOfDay } from '../index';
+import { SCENES, SceneOnly, TIMES_OF_DAY, WEATHERS, paletteFor } from '../index';
+import type { SceneId, SceneSettings, TimeOfDay, Weather } from '../index';
 import { DocsPlayer } from './DocsPlayer';
 import { CodeBlock } from './CodeBlock';
 import { Chip, SectionHead } from './parts';
@@ -41,18 +41,19 @@ export function SceneExplorer({
 }) {
   const [scene, setScene] = useState<SceneId>('street');
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('golden');
+  const [weather, setWeather] = useState<Weather>('rain');
   const [parallax, setParallax] = useState(0.7);
   const [speed, setSpeed] = useState(1);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   const inputProps = useMemo(
-    () => ({ scene, timeOfDay, parallax, speed, direction, motion: 'walk' as const }),
-    [scene, timeOfDay, parallax, speed, direction],
+    () => ({ scene, timeOfDay, parallax, speed, direction, weather, motion: 'walk' as const }),
+    [scene, timeOfDay, parallax, speed, direction, weather],
   );
 
   const palette = paletteFor(timeOfDay);
   const sceneDef = SCENES.find((s) => s.id === scene)!;
-  const snippet = sceneSnippet(scene, timeOfDay, parallax, { speed, direction });
+  const snippet = sceneSnippet(scene, timeOfDay, parallax, { speed, direction, weather });
 
   return (
     <section className="docs-section" id="docs-scenes" data-docs-scenes>
@@ -99,6 +100,12 @@ export function SceneExplorer({
               options={TIMES_OF_DAY.map((t) => ({ id: t.id, label: t.label }))}
               onChange={(id) => setTimeOfDay(id as TimeOfDay)}
             />
+            <Segmented
+              label="Weather"
+              value={weather}
+              options={WEATHERS.map((w) => ({ id: w.id, label: w.label }))}
+              onChange={(id) => setWeather(id as Weather)}
+            />
             <Slider
               id="scene-parallax"
               label="Parallax"
@@ -128,6 +135,13 @@ export function SceneExplorer({
               ]}
               onChange={(id) => setDirection(id === 'right' ? 1 : -1)}
             />
+            <p className="pg-hint">
+              <b>Weather</b> is one deterministic overlay drawn over any scene: rain slants and
+              splashes, snow sways and settles, fog drifts in bands. <code>clear</code> — the
+              default — draws nothing at all, byte-identical to a render without it. The
+              transparent <code>CharacterOnly</code> alpha plate never weathers; put weather on
+              the scene behind it when compositing.
+            </p>
             <p className="pg-hint">
               <b>parallax</b> scales how far the distant layers travel relative to the foreground.{' '}
               <code>0</code> flattens the world into a single plane; <code>1</code> is full depth.
@@ -166,8 +180,8 @@ export function SceneExplorer({
             style={{ marginTop: 12, justifySelf: 'start' }}
             onClick={() =>
               onApply(
-                { scene, timeOfDay, parallax, speed, direction },
-                `${sceneDef.label} · ${timeOfDay}`,
+                { scene, timeOfDay, weather, parallax, speed, direction },
+                `${sceneDef.label} · ${timeOfDay}${weather === 'clear' ? '' : ` · ${weather}`}`,
               )
             }
           >

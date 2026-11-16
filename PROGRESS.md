@@ -23,12 +23,12 @@ repo is in, what was just done, and exactly where to continue.
   `ca8e3a1` CI record → `1788c4f` **Stage 4** → `b5f4e01` Stage 4 independent
   verification + handoff truth-up → `5501430` uploads junk removal →
   `4a10194` kit-ZIP regeneration (CI green again) → **CI record (this commit)**.
-- **Next work:** **Phase 5.1** — the contract is `docs/PHASE-5.1-SPEC.md`
-  (landed in `38bee81`, run 26 green; T0 landed `7dbae86`, run 27 green).
-  **T1a (rig weather) is implemented in this commit** — T1b (studio + docs) is
-  next, then closeout. The docs site itself is finished; do **not** redo any
-  stage of it. Two owner decisions remain open (npm publish, v1 shims). See
-  "Phase 5.1" below.
+- **Next work:** **Phase 5.1 closeout** — T1a (rig weather) and T1b (studio +
+  docs) are landed and CI-gated. Remaining: closeout — mark weather done in
+  `docs/ROADMAP.md`, final PROGRESS/spec ledger ticks, ZIP regenerated. Two
+  owner decisions remain open (npm publish, v1 shims) — both recommended to
+  defer (npm needs org ownership + a release process; shims are a planned v3
+  breaking change). See "Phase 5.1" below.
 
 > ## 🔐 Credential hygiene (2026-11-15)
 >
@@ -91,10 +91,10 @@ Do **not** redo any stage of it, and do not go looking for
 
 The remaining roadmap work is:
 
-1. **T1b — weather in the studio + docs** — the rig side is done and CI-gated;
-   wire `settings.weather` into `Controls.tsx`, the playground/explorer and
-   both smokes (222 → ~230 checks), then closeout. No `weather` field existed
-   before this commit; now every scene accepts one.
+1. **Phase 5.1 closeout** — weather is done end-to-end (rig + studio + docs +
+   smokes + sheets). Remaining: mark it done in `docs/ROADMAP.md`, final
+   ledger ticks, ZIP regenerated. Owner decisions still open: npm publish
+   (recommended: defer), v1 shims (recommended: remove in a planned v3).
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
@@ -115,8 +115,8 @@ See rule 11 and "CI fix" below.
 | --- | --- | --- | --- |
 | Step 0 — land the spec | `38bee81` | ✅ run **26** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke 10/10 PNGs |
 | T0 — CI hardening | `7dbae86` | ✅ run **27** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke PNG sequence ✓ (totals read from job logs) |
-| T1a — rig weather | *(this commit)* | ⏳ pending | see below — verify 101/101 · goldens 84, old 48 byte-identical |
-| T1b — studio + docs | — | — | not started |
+| T1a — rig weather | `0bf5c03` + `457c407` (LF ZIP fix) | ✅ run **28 → 29** | 28 red on kit-ZIP CRLF drift (Windows checkout vs Linux CI); 29 green: verify **101/101** · browser-smoke 222/0 · render-smoke 10/10 PNGs · goldens 84, old 48 byte-identical |
+| T1b — studio + docs | *(this commit)* | ⏳ pending | see below — verify 101/101 · docs smoke 235 checks / 0 failed · studio smoke ✓ |
 | Closeout | — | — | not started |
 
 ### Step 0 — workspace re-established, spec landed (`38bee81`)
@@ -236,6 +236,54 @@ non-regressive. `VISUAL_GOLDEN_VERSION` stays 1.
 **Verified locally with the exact CI gate** (`npm run verify`): typecheck
 clean, **101/101 tests** (was 85), build ok, ZIP regenerated to match the tree
 (`npm run kit:zip`, 89 files) in the same commit per rule 11.
+
+**Pushed as `0bf5c03`**, confirmed green via the Actions API as **run 29**
+(after one honest failure: run 28 went red because the ZIP had been
+regenerated on Windows with CRLF endings while Linux CI checks out LF —
+fixed in `457c407` by normalising the working tree and regenerating the
+archive; totals re-read from the job logs: 101/101 · 222/0 · 10/10 PNGs).
+
+### T1b — weather in the studio and the docs (this commit)
+
+Wires the rig weather (T1a) into every surface a visitor touches. No rig,
+schema or composition changes in this commit — pure presentation and gates.
+
+**What landed**
+
+- `src/ui/Controls.tsx` — a **Weather** segmented control in
+  "Scene & camera", after time of day. `w` is taken by `walk`, so no hotkey
+  was bound (spec §6.1 rule).
+- `src/App.tsx` — `data-weather={settings.weather}` on the stage wrapper, so
+  smokes can assert weather state without depending on SVG internals.
+- `src/docs/Playground.tsx` — weather segmented beside time of day
+  (**27 live controls**), and the randomiser now rolls weather
+  (weighted 3:3 toward `clear` so the look stays mostly unweathered).
+- `src/docs/SceneExplorer.tsx` — weather segmented beside the lighting
+  control (opens on `rain`), wired into the `SceneOnly` plate, the snippet
+  and **Send to playground**.
+- `src/docs/snippets.ts` — `sceneSnippet` gains `extra.weather`, emitting
+  `weather="rain"` **only when not `'clear'`**, so every pre-existing snippet
+  is byte-identical; `weather` joined `SHOWN_KEYS`, so props expressions show
+  it only when it differs from the cast default.
+- `src/docs/DocsSite.tsx` — hero stats and footer now count weathers
+  (`4×3×4`), the Architecture section says **101 unit tests / 84 goldens**,
+  and a "Weather" note lives in the Scenes section.
+- `scripts/smoke.mjs` — click **Rain** → stage reports `data-weather="rain"`;
+  click **Clear** → `clear` and no overlay node left in the SVG. 2 new
+  interactions in the studio gate.
+- `scripts/docs-smoke.mts` — +13 checks (222 → **235**): both weather
+  segments, overlay draws/clears, snippet round-trip both ways, alpha plate
+  draws no weather, preset export/import round-trips weather, send-to-
+  playground carries weather, reduced-motion still renders weather.
+- `scripts/scene-sheet.tsx` — the sheet matrix now spans
+  **4 scenes × 3 lighting × 4 weather** (48 cells) with the front weather
+  pass over the character. The contact sheet is character-only, so weather
+  cannot apply there (`CharacterOnly` never weathers).
+- Count updates in `README.md` and `docs/DOCS_SITE_PLAN.md`.
+
+**Verified locally with the exact CI gate:** typecheck clean, **101/101
+tests**, build ok, `npm run smoke` (studio) ✓ against the production preview,
+`npm run smoke:docs` **235 checks / 0 failed**, ZIP regenerated per rule 11.
 
 ---
 

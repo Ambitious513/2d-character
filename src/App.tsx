@@ -263,7 +263,7 @@ export default function App() {
                   </div>
                   <div className="stage-meta"><span className="status-dot" />{motionLabel(settings.motion)}<span className="meta-sep">·</span>{settings.scene} / {settings.timeOfDay}</div>
                 </div>
-                <div className={`player-wrap ${view === 'character' ? 'checkerboard' : ''}`}>
+                <div className={`player-wrap ${view === 'character' ? 'checkerboard' : ''}`} data-weather={settings.weather}>
                   <Player
                     ref={playerRef}
                     component={composition}

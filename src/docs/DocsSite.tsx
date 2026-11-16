@@ -34,6 +34,7 @@ import {
   PRESETS,
   SCENES,
   TIMES_OF_DAY,
+  WEATHERS,
   VERSION,
   WalkScene,
   castSceneSettings,
@@ -285,7 +286,7 @@ export default function DocsSite() {
             <b>Stride {VERSION}</b>
             <div>
               {cast.length} characters · {MOTIONS.length} motions · {EMOTIONS.length} emotions ·{' '}
-              {SCENES.length} scenes × {TIMES_OF_DAY.length} lighting passes · {PRESETS.length} presets
+              {SCENES.length} scenes × {TIMES_OF_DAY.length} lighting × {WEATHERS.length} weathers · {PRESETS.length} presets
             </div>
           </div>
           <div className="docs-footer-links">
@@ -377,8 +378,8 @@ function Overview() {
             <span>Emotions</span>
           </div>
           <div className="stat">
-            <b>{SCENES.length}×{TIMES_OF_DAY.length}</b>
-            <span>Scenes / light</span>
+            <b>{SCENES.length}×{TIMES_OF_DAY.length}×{WEATHERS.length}</b>
+            <span>Scenes × light × weather</span>
           </div>
         </div>
       </div>
@@ -663,11 +664,11 @@ function Architecture({ castCount }: { castCount: number }) {
             <ul className="arch-list">
               <li>
                 <Check size={14} />
-                <span><b>83 unit tests</b> — determinism, IK foot-lock, lip-sync timing, preset migration, packaging (the barrel is walked to prove no app code leaks in).</span>
+                <span><b>101 unit tests</b> — determinism (now including weather), IK foot-lock, lip-sync timing, preset migration, packaging (the barrel is walked to prove no app code leaks in).</span>
               </li>
               <li>
                 <Check size={14} />
-                <span><b>48 visual golden hashes</b> — {castCount} cast × 3 motions × 2 emotions, plus 4 scenes × 3 lighting passes.</span>
+                <span><b>84 visual golden hashes</b> — {castCount} cast × 3 motions × 2 emotions, plus 4 scenes × 3 lighting passes × (1 clear + 3 weathers).</span>
               </li>
               <li>
                 <Check size={14} />

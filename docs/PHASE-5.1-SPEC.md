@@ -544,9 +544,9 @@ real; a committed-but-unpushed stage stays unticked.
 - [x] T1a types + schema + env props · [x] `weather-math.ts` + `Weather.tsx`
 - [x] `SceneLayer` early-return · [x] `WeatherFront` in compositions · [x] barrel exports
 - [x] `tests/weather.test.tsx` (11 groups) · [x] goldens 48 → 84, old 48 unchanged
-- [ ] T1a pushed, CI green (run #____)
-- [ ] T1b studio · [ ] docs playground + explorer + snippets · [ ] smokes 222 → ~230
-- [ ] sheets + README/docs counts
+- [x] T1a pushed, CI green (run #29, `0bf5c03` + `457c407` LF-ZIP fix)
+- [x] T1b studio (Controls + stage attribute) · [x] docs playground + explorer + snippets · [x] smokes 222 → 235
+- [x] sheets (scene-sheet 4×3×4) + README/docs counts
 - [ ] T1b pushed, CI green (run #____)
 - [ ] ROADMAP + PROGRESS closed out, ZIP regenerated
 

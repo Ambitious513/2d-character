@@ -39,6 +39,7 @@ import {
   OUTFITS,
   SCENES,
   TIMES_OF_DAY,
+  WEATHERS,
   WalkScene,
   castSceneSettings,
   getCharacter,
@@ -47,7 +48,7 @@ import {
   serializePresetJSON,
   speechFrames,
 } from '../index';
-import type { Build, CharacterColors, Emotion, HairStyle, Motion, Outfit, SceneId, SceneSettings, TimeOfDay } from '../index';
+import type { Build, CharacterColors, Emotion, HairStyle, Motion, Outfit, SceneId, SceneSettings, TimeOfDay, Weather } from '../index';
 import { copyText, downloadText } from '../ui/utils';
 import { DocsPlayer } from './DocsPlayer';
 import { CodeBlock } from './CodeBlock';
@@ -142,6 +143,7 @@ export function Playground({
         build: pick(BUILDS).id,
         scene: pick(SCENES).id,
         timeOfDay: pick(TIMES_OF_DAY).id,
+        weather: pick(['clear', 'clear', 'clear', 'rain', 'snow', 'fog'] as const),
         speed: round(0.7 + Math.random() * 0.7),
         stride: round(0.8 + Math.random() * 0.5),
         bounce: round(0.4 + Math.random() * 0.7),
@@ -333,6 +335,12 @@ export function Playground({
                 value={settings.timeOfDay}
                 options={TIMES_OF_DAY.map((t) => ({ id: t.id, label: t.label }))}
                 onChange={(id) => update({ timeOfDay: id as TimeOfDay })}
+              />
+              <Segmented
+                label="Weather"
+                value={settings.weather}
+                options={WEATHERS.map((w) => ({ id: w.id, label: w.label }))}
+                onChange={(id) => update({ weather: id as Weather })}
               />
               <Slider id="pg-parallax" label="Parallax" value={settings.parallax} min={0} max={1} step={0.05} format={(v) => v.toFixed(2)} onChange={(v) => update({ parallax: v })} />
               <Switch

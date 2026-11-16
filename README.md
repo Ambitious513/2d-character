@@ -64,7 +64,7 @@ chunk and are **not** part of the library's public surface.
 
 ```bash
 npm run dev          # then open http://localhost:5173/#/docs
-npm run smoke:docs   # 222-check browser gate for the docs route
+npm run smoke:docs   # 231-check browser gate for the docs route
 ```
 
 ## What's in the box
@@ -84,8 +84,9 @@ joints, and feet stay planted on the ground (no ice-skating).
 
 ### Environments
 `SceneLayer` renders `street`, `park`, `room` or `backdrop`, each with `day`,
-`golden` and `night` lighting, parallax depth and a follow camera. Extend with
-`registerScene()`.
+`golden` and `night` lighting, `clear` / `rain` / `snow` / `fog` weather
+(deterministic, in front of and behind the character), parallax depth and a
+follow camera. Extend with `registerScene()`.
 
 ### Determinism
 The rig is a pure function of `(settings, frame, fps)`. No `Math.random()`, no
@@ -183,7 +184,7 @@ npm test                     # 83 unit + visual-regression tests
 npm run build                # production build
 npm run verify               # all three
 npm run smoke                # studio browser smoke (desktop + mobile)
-npm run smoke:docs           # docs browser smoke: 222 checks, desktop + mobile
+npm run smoke:docs           # docs browser smoke: 235 checks, desktop + mobile
 npm run check:ids            # gradient-id collision diagnostic
 npm run check:env-ids        # per-scene lighting gradient diagnostic
 npm run update:visual-goldens # regenerate tests/__golden__ after an intended visual change

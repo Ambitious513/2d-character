@@ -40,6 +40,7 @@ import {
   SCENES,
   TIMES_OF_DAY,
   VERSION,
+  WEATHERS,
   listCharacters,
   parsePreset,
   resolveDialogueComposition,
@@ -103,7 +104,7 @@ async function playgroundSnapshot(page: Page) {
       SWITCHES.map((name) => pg.getByRole('switch', { name }).getAttribute('aria-checked')),
     ),
     segments: await Promise.all(
-      ['Direction', 'Time of day'].map((label) =>
+      ['Direction', 'Time of day', 'Weather'].map((label) =>
         pg.locator(`.pg-seg[aria-label="${label}"] button[aria-pressed="true"]`).textContent(),
       ),
     ),
@@ -173,7 +174,7 @@ async function main(): Promise<void> {
       await heroStage.locator('[data-scene="street"][data-time-of-day="golden"]').count() === 1);
     check('hero stats are derived from the registry',
       (await hero.locator('.hero-stats .stat b').allTextContents()).join('|')
-      === [cast.length, MOTIONS.length, EMOTIONS.length, `${SCENES.length}×${TIMES_OF_DAY.length}`].join('|'),
+      === [cast.length, MOTIONS.length, EMOTIONS.length, `${SCENES.length}×${TIMES_OF_DAY.length}×${WEATHERS.length}`].join('|'),
       (await hero.locator('.hero-stats .stat b').allTextContents()).join('|'));
     check('hero primary CTA opens the playground',
       await hero.locator('.hero-cta a', { hasText: 'Open playground' }).getAttribute('href') === '#/docs/playground');
@@ -299,6 +300,17 @@ async function main(): Promise<void> {
     await pg.locator('.pg-seg[aria-label="Time of day"] button', { hasText: 'Night' }).click();
     await page.waitForSelector(`${pgStage} [data-time-of-day="night"]`);
     check('time-of-day segment re-lights the world', true);
+
+    // Weather — the overlay rides the scene view; the SVG reports its state.
+    check('playground weather segment has every option',
+      await pg.locator('.pg-seg[aria-label="Weather"] button').count() === WEATHERS.length);
+    await pg.locator('.pg-seg[aria-label="Weather"] button', { hasText: 'Snow' }).click();
+    await page.waitForSelector(`${pgStage} [data-weather="snow"]`);
+    check('weather segment draws the overlay', true);
+    check('weather segment reaches the snippet', (await pgSnippet()).includes("weather: 'snow'"));
+    await pg.locator('.pg-seg[aria-label="Weather"] button', { hasText: 'Clear' }).click();
+    await page.waitForTimeout(400);
+    check('clear weather draws no overlay', await page.locator(`${pgStage} [data-weather]`).count() === 0);
     await slider('parallax', '0.3', '0.30', 'parallax: 0.3');
     await pg.getByRole('switch', { name: 'Follow camera' }).click();
     await page.waitForTimeout(300);
@@ -365,6 +377,7 @@ async function main(): Promise<void> {
     await page.waitForTimeout(700);
     check('alpha plate is 720×720', (await text(pg.locator('.docs-slate'))).includes('720×720'));
     check('alpha plate draws no environment', await page.locator(`${pgStage} [data-scene]`).count() === 0);
+    check('alpha plate draws no weather overlay', await page.locator(`${pgStage} [data-weather-pass]`).count() === 0);
     await page.waitForSelector(`${pgStage} [data-character="juno"]`, { timeout: 15000 });
     check('alpha plate keeps the character', await page.locator(`${pgStage} [data-character="juno"]`).count() === 1);
     check('alpha snippet switches composition', (await pgSnippet()).includes('CharacterOnly'));
@@ -376,6 +389,8 @@ async function main(): Promise<void> {
     check('scene snippet switches back', (await pgSnippet()).includes('WalkScene'));
 
     // Actions.
+    await pg.locator('.pg-seg[aria-label="Weather"] button', { hasText: 'Fog' }).click();
+    await page.waitForSelector(`${pgStage} [data-weather="fog"]`);
     await pg.getByRole('button', { name: 'Copy props', exact: true }).click();
     await page.waitForTimeout(300);
     check('copy props toast', (await text(page.locator('.docs-toast'))).includes('inputProps copied'));
@@ -395,6 +410,9 @@ async function main(): Promise<void> {
     check('downloaded preset round-trips the live look',
       reparsed.ok && reparsed.preset.settings.character === 'juno'
       && reparsed.preset.settings.motion === 'talk' && reparsed.preset.settings.colors.jacket === '#365de6');
+    check('downloaded preset round-trips weather',
+      reparsed.ok && reparsed.preset.settings.weather === 'fog',
+      reparsed.ok ? reparsed.preset.settings.weather : 'not ok');
 
     const beforeRoll = await playgroundSnapshot(page);
     await pg.getByRole('button', { name: 'Randomize', exact: true }).click();
@@ -539,6 +557,19 @@ async function main(): Promise<void> {
     check('scene snippet reflects parallax', sceneSnip.includes('parallax={0.25}'));
     check('scene snippet reflects non-default speed', sceneSnip.includes('speed={1.5}'));
     check('scene snippet reflects direction', sceneSnip.includes('direction={-1}'));
+
+    // Weather — the explorer opens on rain, so the snippet carries it.
+    check('scene explorer weather segment has every option',
+      await page.locator(`${SE} .pg-seg[aria-label="Weather"] button`).count() === WEATHERS.length);
+    check('scene snippet emits the active weather', sceneSnip.includes('weather="rain"'));
+    await page.locator(`${SE} .pg-seg[aria-label="Weather"] button`, { hasText: 'Clear' }).click();
+    await page.waitForTimeout(400);
+    check('clear weather removes the overlay', await page.locator(`${sceneStage} [data-weather]`).count() === 0);
+    const sceneSnipClear = await text(page.locator(`${SE} .docs-code pre`));
+    check('clear weather is absent from the snippet', !sceneSnipClear.includes('weather='));
+    await page.locator(`${SE} .pg-seg[aria-label="Weather"] button`, { hasText: 'Snow' }).click();
+    await page.waitForSelector(`${sceneStage} [data-weather="snow"]`);
+    check('scene weather switch updates the plate', true);
     check('scene slider output shows value',
       (await text(page.locator('label[for="scene-speed"] output'))) === '1.50×');
     await shot(page, '07-scenes');
@@ -554,6 +585,8 @@ async function main(): Promise<void> {
       await page.locator('#pg-scene').inputValue());
     check('send applies the lighting',
       await text(page.locator(`${PG} .pg-seg[aria-label="Time of day"] button[aria-pressed="true"]`)) === 'Night');
+    check('send applies the weather',
+      await text(page.locator(`${PG} .pg-seg[aria-label="Weather"] button[aria-pressed="true"]`)) === 'Snow');
     check('send applies parallax', await page.locator('#pg-parallax').inputValue() === '0.25',
       await page.locator('#pg-parallax').inputValue());
     check('send marks the look custom', (await text(page.locator(`${PG} .pg-stage-bar`))).includes('Custom'));
@@ -773,6 +806,10 @@ async function main(): Promise<void> {
     await calm.waitForTimeout(800);
     check('reduced motion plays on demand',
       calmFrame !== (await text(calm.locator('.docs-hero [data-docs-frame]'))));
+    // Weather renders statically under reduced motion — no autoplay needed.
+    await calm.locator('#docs-scenes').scrollIntoViewIfNeeded();
+    await calm.waitForSelector(`${SE} [data-weather="rain"]`, { timeout: 15000 });
+    check('reduced motion still renders weather', true);
     await calmContext.close();
   } finally {
     await browser.close();

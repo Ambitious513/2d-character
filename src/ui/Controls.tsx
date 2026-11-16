@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Activity, ArrowLeftRight, Camera, ChevronDown, Glasses, ImagePlus, Layers, Palette, PersonStanding, SlidersHorizontal, Sparkles, Trash2, Upload, Backpack, Eye, Footprints, Gauge, MoveHorizontal, Waves, Wind, Users, Shirt, Scissors, MessageSquare, Crown, Headphones, Snowflake, Smile, CircleDot } from 'lucide-react';
-import type { SceneSettings, CharacterColors, TimeOfDay, Motion, SceneId, HairStyle, Outfit, Build } from '../rig/types';
-import { MOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY } from '../rig/types';
+import type { SceneSettings, CharacterColors, TimeOfDay, Motion, SceneId, Weather, HairStyle, Outfit, Build } from '../rig/types';
+import { MOTIONS, HAIR_STYLES, OUTFITS, BUILDS, SCENES, TIMES_OF_DAY, WEATHERS } from '../rig/types';
 import { listCharacters } from '../rig/cast';
 
 export interface Preset { id: string; name: string; settings: SceneSettings; custom?: boolean }
@@ -180,6 +180,7 @@ export function Inspector({ settings, update, presets, activePreset, onPreset, o
         <Section title="Scene & camera" icon={<Layers size={15} />}>
           <Segmented label="Scene" options={SCENES} value={settings.scene} onChange={(scene: SceneId) => update({ scene })} />
           <Segmented label="Time of day" options={TIMES_OF_DAY} value={settings.timeOfDay} onChange={(timeOfDay: TimeOfDay) => update({ timeOfDay })} />
+          <Segmented label="Weather" options={WEATHERS.map(({ id, label }) => ({ id, label }))} value={settings.weather} onChange={(weather: Weather) => update({ weather })} />
           <Slider label="Parallax depth" icon={<MoveHorizontal size={13} />} value={settings.parallax} min={0} max={1} step={0.05} onChange={(parallax) => update({ parallax })} format={(v) => `${Math.round(v * 100)}%`} />
           <Toggle label="Follow camera" icon={<Camera size={14} />} description="Hold the character centre-frame while the world scrolls" checked={settings.followCamera} onChange={(followCamera) => update({ followCamera })} />
           <Toggle label="Rig guides" icon={<Eye size={14} />} description="Show ground line, joints and IK bones" checked={settings.guides} onChange={(guides) => update({ guides })} />
