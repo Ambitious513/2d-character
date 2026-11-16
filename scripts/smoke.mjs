@@ -20,6 +20,13 @@ await page.waitForSelector('[data-character="milo"]', { timeout: 15000 });
 await page.waitForTimeout(600);
 await page.screenshot({ path: 'screenshots/desktop-studio.png', fullPage: true });
 
+// The corner label must stay a small pill. It used to be stretched full-stage
+// by `.player-wrap > div` (width/height 100%), which read as a dark overlay.
+const labelBox = await page.locator('.stage-corner-label').boundingBox();
+if (!labelBox || labelBox.width > 200 || labelBox.height > 60) {
+  errors.push(`stage corner label is stretched: ${labelBox ? `${Math.round(labelBox.width)}x${Math.round(labelBox.height)}` : 'missing'}`);
+}
+
 // Playback controls
 await page.getByRole('button', { name: 'Pause', exact: true }).click();
 await page.waitForTimeout(120);

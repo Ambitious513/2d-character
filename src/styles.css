@@ -73,7 +73,7 @@ a { color: inherit; }
 .stage-meta { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--muted); text-transform: capitalize; white-space: nowrap; }
 .meta-sep { opacity: .5; }
 .player-wrap { position: relative; aspect-ratio: 16 / 9; background: #BFE3E8; overflow: hidden; }
-.player-wrap > div { width: 100%; height: 100%; }
+.player-wrap > div:not(.stage-corner-label) { width: 100%; height: 100%; }
 .checkerboard { background-color: #EDECE5; background-image: linear-gradient(45deg,#DEDDD4 25%,transparent 25%), linear-gradient(-45deg,#DEDDD4 25%,transparent 25%), linear-gradient(45deg,transparent 75%,#DEDDD4 75%), linear-gradient(-45deg,transparent 75%,#DEDDD4 75%); background-size: 24px 24px; background-position: 0 0,0 12px,12px -12px,-12px 0; }
 .reference-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; z-index: 5; }
 .stage-corner-label { position: absolute; left: 14px; bottom: 12px; z-index: 6; pointer-events: none; display: flex; gap: 10px; align-items: center; background: rgba(38,53,46,.72); color: #F5F4EF; font-size: 9px; font-weight: 800; letter-spacing: .14em; padding: 5px 9px; border-radius: 6px; }
