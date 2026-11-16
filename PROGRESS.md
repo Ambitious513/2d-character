@@ -22,12 +22,11 @@ repo is in, what was just done, and exactly where to continue.
   `ca8e3a1` CI record → `1788c4f` **Stage 4** → `b5f4e01` Stage 4 independent
   verification + handoff truth-up → `5501430` uploads junk removal →
   `4a10194` kit-ZIP regeneration (CI green again) → **CI record (this commit)**.
-- **Next work:** **Phase 5.1 closeout** — T1a (rig weather) and T1b (studio +
-  docs) are landed and CI-gated. Remaining: closeout — mark weather done in
-  `docs/ROADMAP.md`, final PROGRESS/spec ledger ticks, ZIP regenerated. Two
-  owner decisions remain open (npm publish, v1 shims) — both recommended to
-  defer (npm needs org ownership + a release process; shims are a planned v3
-  breaking change). See "Phase 5.1" below.
+- **Next work:** nothing outstanding in Phase 5.1 — the contract is fully
+  discharged and the last two runs (**30** T1b, **31** closeout) are green.
+  The two deferred owner decisions (npm publish, v1 shims) are the only open
+  items, both deliberately deferred — see "Open decisions" in
+  `docs/ROADMAP.md` and the closeout section below.
 
 > ## 🔐 Credential hygiene (2026-11-15)
 >
@@ -116,7 +115,7 @@ See rule 11 and "CI fix" below.
 | T0 — CI hardening | `7dbae86` | ✅ run **27** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke PNG sequence ✓ (totals read from job logs) |
 | T1a — rig weather | `0bf5c03` + `457c407` (LF ZIP fix) | ✅ run **28 → 29** | 28 red on kit-ZIP CRLF drift (Windows checkout vs Linux CI); 29 green: verify **101/101** · browser-smoke 222/0 · render-smoke 10/10 PNGs · goldens 84, old 48 byte-identical |
 | T1b — studio + docs | `50a3f1b` | ✅ run **30** | verify 101/101 · studio smoke ✓ · docs smoke **235 checks / 0 failed** · render-smoke 10/10 PNGs (totals read from job logs) |
-| Closeout | *(this commit)* | ⏳ pending | ROADMAP + PROGRESS closed out, ZIP regenerated |
+| Closeout | `f519e9e` | ✅ run **31** | verify 101/101 · studio smoke ✓ · docs smoke 235/0 · render-smoke 10/10 (totals read from job logs) |
 
 ### Step 0 — workspace re-established, spec landed (`38bee81`)
 

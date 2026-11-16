@@ -83,9 +83,15 @@ in front of the character. See "Phase 5.1" below.
   `render:alpha`, `render:alpha:prores`, `render:alpha:webm` npm scripts, guarded
   by `tests/export-recipes.test.ts`.
 
-**Open decision:** publishing to npm as `@stride/rig`. The package is still
-`private: true` with no library build / `exports` map. Copy-in consumption works
-today. See `PROGRESS.md` → "Open decisions".
+**Open decisions** (deliberately deferred — nothing blocks):
+
+- **npm publish as `@stride/rig`** — the package is still `private: true` with no
+  library build / `exports` map. Copy-in consumption works today; publishing
+  needs npm org ownership, a release process and a semver commitment, so it
+  should be a decision made with a real consumer in hand.
+- **v1 shims** (`Environment` type alias, `environment` prop, v1 preset
+  envelopes) — cheap and fully tested, but removing them is a breaking change;
+  that should ride a planned `3.0.0` with a migration note, not a feature phase.
 
 ## Phase 5 — Studio polish, docs site & CI ✅
 
