@@ -8,12 +8,13 @@ repo is in, what was just done, and exactly where to continue.
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
 - **State:** ✅ green — **Phase 5.1 is complete** (T0 CI hardening, T1a rig
-  weather, T1b studio + docs, closeout). Typecheck clean, **101/101 tests**,
-  **84 visual golden hashes** (the 48 pre-existing ones byte-unchanged),
+  weather, T1b studio + docs, closeout) and **John joined the cast** (7th
+  member, `bad80e25`). Typecheck clean, **101/101 tests**,
+  **90 visual golden hashes** (the 84 pre-existing ones byte-unchanged),
   studio smoke ✓, docs smoke **235 checks / 0 failed**, render-smoke 10/10
   PNGs. Weather shipped end-to-end: `clear` / `rain` / `snow` / `fog` —
   deterministic overlay in the rig, studio control, docs playground +
-  explorer, smokes and the scene sheet. See "Phase 5.1" below.
+  explorer, smokes and the scene sheet. See "Phase 5.1" and "John" below.
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
   record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
@@ -302,6 +303,26 @@ semver commitment; ZIP copy-in consumption works today. v1 shims
 (`Environment` alias, `environment` prop, v1 preset envelopes) — cheap, tested,
 and removing them is a breaking change that should ride a planned v3.0.0 with
 a migration note, not a feature phase.
+
+### John — 7th cast member (`bad80e25`, CI run 35)
+
+Salvaged from community PR #1. That branch was **not mergeable** (it committed
+`node_modules/` — 18,101 files — gutted `.gitignore` to `*.zip`, added root
+junk, and failed CI with `spawnSync git ENOBUFS` in the kit-ZIP guard), so the
+three good files were extracted onto `main` and verified instead:
+
+- `src/rig/cast.ts` — John: `build: average`, `hair: bald`, `outfit: tee`,
+  custom palette (skin-matched hair colour so stray hair strokes stay
+  invisible), idle/neutral performance with seed 97.
+- `tests/__golden__/visual-hashes.json` — +6 entries (idle/walk/run ×
+  neutral/happy) → **90 total**; the 84 pre-existing hashes are unchanged.
+- `src/App.tsx` — `?view=cast|character|motion|scene` deep link for shareable
+  studio views.
+- `README.md` — cast list now includes John.
+
+The studio cast grid renders **7 chips** and the cast sheet draws John; both
+smokes and the full suite pass (101/101 · 235/0 · 10/10 PNGs). The PR was
+closed with an explanatory comment; its head branch is left as a record.
 
 ---
 
