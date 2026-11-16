@@ -215,6 +215,33 @@ export const CAST: CharacterDefinition[] = [
       dialogue: 'Can I go again? Please?',
     },
   },
+  {
+    id: 'john',
+    name: 'John',
+    tagline: 'Bare-headed and unbothered. Perpetually half-asleep.',
+    build: 'average',
+    hair: 'bald',
+    outfit: 'tee',
+    colors: colors({
+      skin: '#E8C39E',
+      hair: '#E8C39E', // matches skin — no hair; keeps any stray hair stroke invisible
+      jacket: '#D9DBE3',
+      pants: '#4A5568',
+      shoes: '#F5F0E4',
+      accent: '#B05850', // blush/mouth tone sampled from the character sheet
+    }),
+    accessories: {},
+    performance: {
+      motion: 'idle',
+      emotion: 'neutral',
+      speed: 0.85,
+      bounce: 0.45,
+      armSwing: 0.6,
+      scale: 1.18,
+      seed: 97,
+      dialogue: 'Mm. I was already awake.',
+    },
+  },
 ];
 
 /** Mutable registry so host apps can add characters at runtime. */

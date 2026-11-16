@@ -76,7 +76,7 @@ joints, and feet stay planted on the ground (no ice-skating).
 
 | | |
 | --- | --- |
-| **Cast** | Milo, Ada, Kwame, Juno, Ravi, Pip — extend with `registerCharacter()` |
+| **Cast** | Milo, Ada, Kwame, Juno, Ravi, Pip, John - extend with `registerCharacter()` |
 | **Motions** | walk, run, idle, wave, talk, jump, sit, point, think, dance |
 | **Emotions** | neutral, happy, focused, surprised, sad, angry, excited |
 | **Wardrobe** | 8 hair styles, 6 outfits, 5 builds, 7 accessories |

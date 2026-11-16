@@ -53,7 +53,17 @@ export default function App() {
   const [customPresets, setCustomPresets] = useState<Preset[]>(loadCustomPresets);
   const [activePreset, setActivePreset] = useState('builtin-0');
   const [nav, setNav] = useState<Nav>('studio');
-  const [view, setView] = useState<ViewMode>('scene');
+  // Initial view can be deep-linked with ?view=cast|character|motion|scene so
+  // specific sheets (e.g. the full cast including new members) are shareable.
+  const initialView: ViewMode = (() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get('view');
+      return v === 'cast' || v === 'character' || v === 'motion' ? v : 'scene';
+    } catch {
+      return 'scene';
+    }
+  })();
+  const [view, setView] = useState<ViewMode>(initialView);
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
