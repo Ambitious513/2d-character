@@ -230,3 +230,44 @@ test('environment markup is byte-stable across repeated renders', () => {
     assert.equal(a, b, `${scene.id} is not byte-stable`);
   }
 });
+
+/* ------------------------------------------------------------------ */
+/* Weather gradients                                                   */
+/* ------------------------------------------------------------------ */
+
+test('weather gradient ids resolve, dedupe across roots, and differ per palette', () => {
+  const fogIdsPerTod: string[] = [];
+  for (const t of TIMES_OF_DAY) {
+    const markup = renderToStaticMarkup(
+      <svg>
+        <SceneLayer scene="street" timeOfDay={t.id} weather="fog" distance={320} time={1.5} />
+      </svg>,
+    );
+    assertSelfContained(markup, `street/fog/${t.id}`);
+    const ids = [...markup.matchAll(/linearGradient id="(stride-wx-[^"]+)"/g)].map((m) => m[1]);
+    assert.ok(ids.length > 0, `fog/${t.id} declares no weather gradient`);
+    assert.equal(new Set(ids).size, ids.length, `fog/${t.id} declared duplicate weather gradient ids`);
+    fogIdsPerTod.push(ids.sort().join(','));
+  }
+  assert.equal(
+    new Set(fogIdsPerTod).size,
+    fogIdsPerTod.length,
+    `fog gradient ids collided across lighting passes: ${fogIdsPerTod.join(' | ')}`,
+  );
+
+  // Same palette in two separate roots ⇒ one shared id (self-deduplicating).
+  const a = renderToStaticMarkup(<svg><SceneLayer scene="park" timeOfDay="day" weather="fog" distance={10} /></svg>);
+  const b = renderToStaticMarkup(<svg><SceneLayer scene="room" timeOfDay="day" weather="fog" distance={999} /></svg>);
+  const idOf = (s: string) => [...s.matchAll(/linearGradient id="(stride-wx-[^"]+)"/g)].map((m) => m[1]).sort().join(',');
+  assert.equal(idOf(a), idOf(b), 'same palette must share one fog gradient id across roots');
+
+  // scene + weathered character document still resolves every reference.
+  const doc = renderToStaticMarkup(
+    <svg>
+      <SceneLayer scene="street" timeOfDay="night" weather="rain" distance={100} />
+      <CharacterRig settings={castSceneSettings('juno', { scene: 'street', timeOfDay: 'night' })} frame={17} />
+    </svg>,
+  );
+  assertSelfContained(doc, 'street/night/rain + juno');
+  assert.equal(new Set(declaredIds(doc)).size, declaredIds(doc).length, 'rain document has duplicate ids');
+});

@@ -10,7 +10,7 @@
 
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
 import { CharacterRig, CharacterHead, Face } from '../rig/Character';
-import { SceneLayer } from '../rig/environments';
+import { SceneLayer, WeatherFront } from '../rig/environments';
 import { samplePose, GROUND_Y, CHARACTER_X, WIDTH, HEIGHT, FPS } from '../rig/gait';
 import { castSceneSettings, getCharacter, listCharacters } from '../rig/cast';
 import { DEFAULT_SETTINGS, EMOTIONS, MOTIONS, type CharacterSettings, type SceneSettings } from '../rig/types';
@@ -108,6 +108,7 @@ export function WalkScene(props: SceneProps) {
           timeOfDay={settings.timeOfDay}
           parallax={settings.parallax}
           time={frame / fps}
+          weather={settings.weather}
         />
         <Shadow x={x} scale={settings.scale} lift={pose.lift} moving={moving} />
         {settings.guides && <path d={`M 0 ${GROUND_Y} H ${WIDTH}`} stroke="#F26B38" strokeWidth={1.5} strokeDasharray="6 6" opacity={0.8} />}
@@ -115,6 +116,14 @@ export function WalkScene(props: SceneProps) {
           <CharacterRig settings={settings} frame={frame} fps={fps} showGuides={settings.guides} />
         </g>
         {settings.showSubtitles && settings.dialogue ? <Subtitles text={settings.dialogue} /> : null}
+        <WeatherFront
+          weather={settings.weather}
+          distance={settings.followCamera ? worldDistance : 0}
+          direction={settings.direction}
+          timeOfDay={settings.timeOfDay}
+          time={frame / fps}
+          indoor={settings.scene === 'room'}
+        />
       </svg>
     </AbsoluteFill>
   );
@@ -154,6 +163,15 @@ export function SceneOnly(props: SceneProps) {
           timeOfDay={settings.timeOfDay}
           parallax={settings.parallax}
           time={frame / fps}
+          weather={settings.weather}
+        />
+        <WeatherFront
+          weather={settings.weather}
+          distance={pose.distance * settings.scale}
+          direction={settings.direction}
+          timeOfDay={settings.timeOfDay}
+          time={frame / fps}
+          indoor={settings.scene === 'room'}
         />
       </svg>
     </AbsoluteFill>
@@ -259,7 +277,7 @@ export function CastScene(props: SceneProps) {
   return (
     <AbsoluteFill style={{ backgroundColor: '#BFE3E8' }}>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax} time={frame / fps} />
+        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax} time={frame / fps} weather={settings.weather} />
         {cast.map((c, i) => {
           const s = castSceneSettings(c.id, { motion: 'walk', scale: 0.92 });
           const pose = samplePose(s, frame, fps);
@@ -273,6 +291,14 @@ export function CastScene(props: SceneProps) {
             </g>
           );
         })}
+        <WeatherFront
+          weather={settings.weather}
+          distance={0}
+          direction={1}
+          timeOfDay={settings.timeOfDay}
+          time={frame / fps}
+          indoor={settings.scene === 'room'}
+        />
       </svg>
     </AbsoluteFill>
   );
@@ -421,10 +447,18 @@ export function DialogueScene(props: DialogueProps) {
   return (
     <AbsoluteFill style={{ backgroundColor: '#BFE3E8' }}>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax * 0.4} time={frame / fps} />
+        <SceneLayer scene={settings.scene} distance={0} direction={1} timeOfDay={settings.timeOfDay} parallax={settings.parallax * 0.4} time={frame / fps} weather={settings.weather} />
         {performer(leftId, 0, 1, 430)}
         {performer(rightId, 1, -1, 850)}
         {settings.showSubtitles !== false && active ? <Subtitles text={active.text} y={690} /> : null}
+        <WeatherFront
+          weather={settings.weather}
+          distance={0}
+          direction={1}
+          timeOfDay={settings.timeOfDay}
+          time={frame / fps}
+          indoor={settings.scene === 'room'}
+        />
       </svg>
     </AbsoluteFill>
   );

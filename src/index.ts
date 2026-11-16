@@ -32,11 +32,13 @@ export {
   BUILDS,
   SCENES,
   TIMES_OF_DAY,
+  WEATHERS,
 } from './rig/types';
 export type {
   Motion,
   Emotion,
   TimeOfDay,
+  Weather,
   SceneId,
   HairStyle,
   Outfit,
@@ -140,6 +142,9 @@ export {
   Room,
   BackdropLayer,
   Backdrop,
+  WeatherLayer,
+  WeatherFront,
+  isIndoorScene,
   PALETTES,
   paletteFor,
   resolveEnvironment,
@@ -148,6 +153,9 @@ export type {
   SceneRenderer,
   SceneLayerProps,
   EnvironmentLayerProps,
+  WeatherLayerProps,
+  WeatherFrontProps,
+  WeatherPass,
   Palette,
 } from './rig/environments';
 export type { ResolvedEnvironment } from './rig/environments/types';
@@ -171,6 +179,7 @@ export {
   proportionsSchema,
   presetSettingsSchema,
   timeOfDaySchema,
+  weatherSchema,
 } from './rig/schema';
 export type { SceneSchema, PresetSettingsInput } from './rig/schema';
 

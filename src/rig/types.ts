@@ -30,6 +30,9 @@ export type Emotion =
 /** Lighting pass applied to any environment. */
 export type TimeOfDay = 'day' | 'golden' | 'night';
 
+/** Atmospheric overlay drawn over any scene. 'clear' renders nothing at all. */
+export type Weather = 'clear' | 'rain' | 'snow' | 'fog';
+
 /**
  * @deprecated v1 called the lighting pass `Environment`. Kept as an alias so
  * older imports (`import type { Environment } from './rig/types'`) still work.
@@ -118,6 +121,8 @@ export interface SceneSettings extends CharacterSettings {
   timeOfDay: TimeOfDay;
   /** 0–1 parallax depth. 0 = flat background, 1 = full depth separation. */
   parallax: number;
+  /** Atmospheric overlay. Defaults to 'clear', which draws nothing. */
+  weather: Weather;
   /** Draw IK skeleton / ground guides. */
   guides: boolean;
   /** true = character held centre-frame and the world scrolls past. */
@@ -192,6 +197,7 @@ export const DEFAULT_SETTINGS: SceneSettings = {
   scene: 'street',
   timeOfDay: 'day',
   parallax: 0.7,
+  weather: 'clear',
   guides: false,
   followCamera: true,
   showSubtitles: false,
@@ -265,4 +271,11 @@ export const TIMES_OF_DAY: { id: TimeOfDay; label: string }[] = [
   { id: 'day', label: 'Day' },
   { id: 'golden', label: 'Golden' },
   { id: 'night', label: 'Night' },
+];
+
+export const WEATHERS: { id: Weather; label: string; note: string }[] = [
+  { id: 'clear', label: 'Clear', note: 'No overlay — byte-identical to v2.2.0' },
+  { id: 'rain', label: 'Rain', note: 'Slanted streaks, splashes, wet sheen' },
+  { id: 'snow', label: 'Snow', note: 'Swaying flakes, ground accumulation' },
+  { id: 'fog', label: 'Fog', note: 'Drifting banded haze, veils the character' },
 ];

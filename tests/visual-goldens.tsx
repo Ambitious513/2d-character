@@ -20,7 +20,7 @@ import { CharacterRig } from '../src/rig/Character';
 import { SceneLayer } from '../src/rig/environments';
 import { CAST, castSceneSettings } from '../src/rig/cast';
 import { SCENES, TIMES_OF_DAY } from '../src/rig/types';
-import type { Emotion, Motion, SceneId, TimeOfDay } from '../src/rig/types';
+import type { Emotion, Motion, SceneId, TimeOfDay, Weather } from '../src/rig/types';
 
 /** Bump when the snapshot format itself changes (not for visual changes). */
 export const VISUAL_GOLDEN_VERSION = 1;
@@ -63,11 +63,14 @@ export function renderCharacterRig(id: string, motion: Motion, emotion: Emotion)
   );
 }
 
+/** Weathers that draw an overlay — the scene golden cross (spec §5.5). */
+export const GOLDEN_WEATHERS: readonly Weather[] = ['rain', 'snow', 'fog'];
+
 /** Render one environment plate inside a real `<svg>` root. */
-export function renderSceneLayer(id: SceneId, timeOfDay: TimeOfDay): string {
+export function renderSceneLayer(id: SceneId, timeOfDay: TimeOfDay, weather: Weather = 'clear'): string {
   return renderToStaticMarkup(
     <svg viewBox={SCENE_VIEW_BOX} xmlns="http://www.w3.org/2000/svg">
-      <SceneLayer scene={id} timeOfDay={timeOfDay} {...SCENE_PRESETS} />
+      <SceneLayer scene={id} timeOfDay={timeOfDay} weather={weather} {...SCENE_PRESETS} />
     </svg>,
   );
 }
@@ -112,6 +115,9 @@ export function buildGoldenEntries(): Record<string, string> {
   for (const scene of SCENES) {
     for (const timeOfDay of TIMES_OF_DAY) {
       entries[`scene:${scene.id}:${timeOfDay.id}`] = sha256(renderSceneLayer(scene.id, timeOfDay.id));
+      for (const weather of GOLDEN_WEATHERS) {
+        entries[`scene:${scene.id}:${timeOfDay.id}:${weather}`] = sha256(renderSceneLayer(scene.id, timeOfDay.id, weather));
+      }
     }
   }
   return entries;
@@ -119,4 +125,4 @@ export function buildGoldenEntries(): Record<string, string> {
 
 export const GOLDEN_ENTRY_COUNT =
   CAST.length * CHARACTER_MOTIONS.length * CHARACTER_EMOTIONS.length +
-  SCENES.length * TIMES_OF_DAY.length;
+  SCENES.length * TIMES_OF_DAY.length * (1 + GOLDEN_WEATHERS.length);

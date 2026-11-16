@@ -540,10 +540,10 @@ real; a committed-but-unpushed stage stays unticked.
 
 - [x] Spec written, reviewed against the tree (`docs/PHASE-5.1-SPEC.md`) — landed `38bee81`, CI run 26 green
 - [x] T0.1 smoke de-flake · [x] T0.2 action bumps · [x] T0.3 timeouts/concurrency
-- [ ] T0 pushed, CI green (run #____)
-- [ ] T1a types + schema + env props · [ ] `weather-math.ts` + `Weather.tsx`
-- [ ] `SceneLayer` early-return · [ ] `WeatherFront` in compositions · [ ] barrel exports
-- [ ] `tests/weather.test.tsx` (11 groups) · [ ] goldens 48 → 84, old 48 unchanged
+- [x] T0 pushed, CI green (run #27, `7dbae86`)
+- [x] T1a types + schema + env props · [x] `weather-math.ts` + `Weather.tsx`
+- [x] `SceneLayer` early-return · [x] `WeatherFront` in compositions · [x] barrel exports
+- [x] `tests/weather.test.tsx` (11 groups) · [x] goldens 48 → 84, old 48 unchanged
 - [ ] T1a pushed, CI green (run #____)
 - [ ] T1b studio · [ ] docs playground + explorer + snippets · [ ] smokes 222 → ~230
 - [ ] sheets + README/docs counts

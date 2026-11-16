@@ -24,10 +24,11 @@ repo is in, what was just done, and exactly where to continue.
   verification + handoff truth-up → `5501430` uploads junk removal →
   `4a10194` kit-ZIP regeneration (CI green again) → **CI record (this commit)**.
 - **Next work:** **Phase 5.1** — the contract is `docs/PHASE-5.1-SPEC.md`
-  (landed in `38bee81`, CI run **26** green). T0 (CI hardening) is done; T1a
-  (rig weather) is next, then T1b (studio + docs), then closeout. The docs site
-  itself is finished; do **not** redo any stage of it. Two owner decisions
-  remain open (npm publish, v1 shims). See "Phase 5.1" below.
+  (landed in `38bee81`, run 26 green; T0 landed `7dbae86`, run 27 green).
+  **T1a (rig weather) is implemented in this commit** — T1b (studio + docs) is
+  next, then closeout. The docs site itself is finished; do **not** redo any
+  stage of it. Two owner decisions remain open (npm publish, v1 shims). See
+  "Phase 5.1" below.
 
 > ## 🔐 Credential hygiene (2026-11-15)
 >
@@ -80,8 +81,8 @@ repo is in, what was just done, and exactly where to continue.
 The repo is **no longer in the tarball-recovery state**. Real source is on
 GitHub, Phase 4 is complete, and Phase 5's four named deliverables are complete
 and CI-verified: visual-regression snapshots, the `render-smoke` CI job, the
-fresh kit ZIP, and keyboard-first studio UX. The current suite is **85 tests**,
-including **48 visual golden hashes**.
+fresh kit ZIP, and keyboard-first studio UX. The current suite is **101 tests**,
+including **84 visual golden hashes** (48 pre-existing ones byte-unchanged).
 
 **The docs site is finished — Stages 0–4 are all done, pushed and verified.**
 Do **not** redo any stage of it, and do not go looking for
@@ -90,8 +91,10 @@ Do **not** redo any stage of it, and do not go looking for
 
 The remaining roadmap work is:
 
-1. **Weather** (`rain` / `snow` / `fog`) — the deferred Phase 3 item and the only
-   thing between Phase 5 and closed. No `weather` field exists yet.
+1. **T1b — weather in the studio + docs** — the rig side is done and CI-gated;
+   wire `settings.weather` into `Controls.tsx`, the playground/explorer and
+   both smokes (222 → ~230 checks), then closeout. No `weather` field existed
+   before this commit; now every scene accepts one.
 
 Open owner decisions remain: npm publishing as `@stride/rig`, and whether to
 drop the v1 compatibility shims. See "Open decisions" below.
@@ -111,8 +114,8 @@ See rule 11 and "CI fix" below.
 | Stage | Commit | CI | Evidence |
 | --- | --- | --- | --- |
 | Step 0 — land the spec | `38bee81` | ✅ run **26** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke 10/10 PNGs |
-| T0 — CI hardening | *(this commit)* | ⏳ pending | see below |
-| T1a — rig weather | — | — | not started |
+| T0 — CI hardening | `7dbae86` | ✅ run **27** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke PNG sequence ✓ (totals read from job logs) |
+| T1a — rig weather | *(this commit)* | ⏳ pending | see below — verify 101/101 · goldens 84, old 48 byte-identical |
 | T1b — studio + docs | — | — | not started |
 | Closeout | — | — | not started |
 
@@ -173,6 +176,66 @@ npm run smoke:docs     → 222 checks passed, 0 failed
 npm run verify         → typecheck clean · 85/85 tests · build ok
 npm run kit:zip        → 86 files (ci.yml, scripts and docs are tracked)
 ```
+
+T0 was pushed as **`7dbae86`** and confirmed green via the Actions API: run **27**,
+all three jobs success, test totals read from the job logs (85/85 · 222/0 · PNG
+sequence). The §7.6 ledger tick for "T0 pushed, CI green" is now filled.
+
+### T1a — deterministic weather in the rig (this commit)
+
+Implements spec §3–§5: `rain` / `snow` / `fog` as one overlay behind the
+character, plus an exported front pass for the compositions. Zero new
+dependencies; the docs site, studio and smokes are untouched (T1b, next).
+
+**What landed**
+
+- `src/rig/types.ts` — `Weather` union (`clear` default), `WEATHERS`, one new
+  `SceneSettings.weather` field next to `parallax`.
+- `src/rig/schema.ts` — `weatherSchema` + `sceneSchema.weather`. `presetSettingsSchema`
+  extends/partials it automatically, so old presets keep parsing and
+  `PRESET_SCHEMA_VERSION` stays **2**.
+- `src/rig/environments/types.ts` — optional `weather` on `EnvironmentLayerProps`;
+  `resolveEnvironment` returns `weather: props.weather ?? 'clear'`.
+- `src/rig/environments/weather-math.ts` — `hash01` integer avalanche, `wrap`,
+  `lerp`, `mix`. No clocks, no `Math.random`; every particle is a pure function
+  of `(index, time, distance, direction)`.
+- `src/rig/environments/Weather.tsx` — `WeatherLayer` (back/front passes),
+  `WeatherFront`, `isIndoorScene`. Budgets rain ≤130 / snow ≤100 / fog ≤10 per
+  pass; seam copies are culled so no drawn particle lands outside
+  `[-TILE, 1280+TILE]`; no SVG filters; fog ids via `stableId`.
+- `src/rig/environments/index.tsx` — `SceneLayer` **early-returns** on
+  `weather: 'clear'` (no wrapper `<g>`, no `data-weather` — this is what keeps
+  the goldens byte-identical); both passes exported.
+- `src/remotion/Compositions.tsx` — `WeatherFront` added after the character in
+  `WalkScene`, `SceneOnly`, `CastScene`, `DialogueScene`. **`CharacterOnly`
+  draws no weather at all** (asserted in tests).
+- `src/index.ts` — weather exports on the public barrel (no studio/docs leak;
+  `tests/packaging.test.tsx` still passes).
+- `tests/weather.test.tsx` — 15 tests over the spec's 11 assertion groups:
+  clear identity, frame-order independence, repeat stability, tile continuity,
+  node budgets, indoor rule, palette orthogonality, composition integration +
+  alpha-plate purity (rendered headlessly through Remotion's context
+  providers), schema/preset, determinism audit, `hash01` sanity.
+- `tests/svg-ids.test.tsx` — weather gradient ids resolve, dedupe across roots
+  and differ per lighting pass.
+
+**The golden proof (spec §5.5)**
+
+`tests/visual-goldens.tsx` now hashes the full cross 4 scenes × 3 lighting × 3
+active weathers = 36 new entries, `scene:street:golden:rain` style. Regenerated
+with `npm run update:visual-goldens` and diffed against the pre-change file:
+
+```
+old entries: 48 | changed: 0 | missing: 0
+new total: 84 | new keys: 36
+```
+
+All 48 pre-existing hashes are **byte-identical** — the change is provably
+non-regressive. `VISUAL_GOLDEN_VERSION` stays 1.
+
+**Verified locally with the exact CI gate** (`npm run verify`): typecheck
+clean, **101/101 tests** (was 85), build ok, ZIP regenerated to match the tree
+(`npm run kit:zip`, 89 files) in the same commit per rule 11.
 
 ---
 

@@ -15,6 +15,7 @@ import { ParkLayer, Park } from './Park';
 import { RoomLayer, Room } from './Room';
 import { BackdropLayer, Backdrop } from './Backdrop';
 import { resolveEnvironment, type EnvironmentLayerProps } from './types';
+import { WeatherLayer, isIndoorScene } from './Weather';
 
 export type SceneRenderer = ComponentType<EnvironmentLayerProps>;
 
@@ -41,10 +42,24 @@ export interface SceneLayerProps extends EnvironmentLayerProps {
   scene?: SceneId | string;
 }
 
-/** The world behind the character, as an SVG `<g>` on a 1280 × 720 canvas. */
+/**
+ * The world behind the character, as an SVG `<g>` on a 1280 × 720 canvas.
+ *
+ * With `weather: 'clear'` (the default) this renders **byte-identical to
+ * v2.2.0** — the early return below means no wrapper `<g>`, no `data-weather`
+ * attribute, no extra node. Any active weather wraps the scene plus the back
+ * weather pass; compositions draw `WeatherFront` after the character.
+ */
 export function SceneLayer({ scene = 'street', ...rest }: SceneLayerProps) {
   const Renderer = getScene(scene);
-  return <Renderer {...rest} />;
+  const { weather } = resolveEnvironment(rest);
+  if (weather === 'clear') return <Renderer {...rest} />;
+  return (
+    <g data-weather={weather}>
+      <Renderer {...rest} />
+      <WeatherLayer {...resolveEnvironment(rest)} pass="back" indoor={isIndoorScene(scene)} />
+    </g>
+  );
 }
 
 /** Standalone environment SVG (no character). */
@@ -65,6 +80,7 @@ export function Environment({ scene = 'street', ...rest }: SceneLayerProps & { c
 }
 
 export { StreetLayer, Street, ParkLayer, Park, RoomLayer, Room, BackdropLayer, Backdrop };
+export { WeatherLayer, WeatherFront, isIndoorScene, type WeatherLayerProps, type WeatherFrontProps, type WeatherPass } from './Weather';
 export { paletteFor, PALETTES, type Palette } from './palette';
 export { resolveEnvironment } from './types';
 export type { EnvironmentLayerProps } from './types';

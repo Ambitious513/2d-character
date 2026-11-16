@@ -8,7 +8,7 @@
  * the feet are planted at.
  */
 
-import type { TimeOfDay } from '../types';
+import type { TimeOfDay, Weather } from '../types';
 
 export interface EnvironmentLayerProps {
   /** Screen pixels travelled. 0 = static plate. */
@@ -16,6 +16,8 @@ export interface EnvironmentLayerProps {
   /** 1 = world scrolls left (character faces right), -1 = mirrored. */
   direction?: 1 | -1;
   timeOfDay?: TimeOfDay;
+  /** Atmospheric overlay. 'clear' (default) draws nothing. */
+  weather?: Weather;
   /** @deprecated v1 name for `timeOfDay`. Still honoured. */
   environment?: TimeOfDay;
   /** 0 = flat, 1 = full depth separation. */
@@ -38,6 +40,7 @@ export function resolveEnvironment(props: EnvironmentLayerProps): ResolvedEnviro
     distance: props.distance ?? 0,
     direction: props.direction ?? 1,
     timeOfDay,
+    weather: props.weather ?? 'clear',
     parallax,
     time: props.time ?? 0,
     night: timeOfDay === 'night',

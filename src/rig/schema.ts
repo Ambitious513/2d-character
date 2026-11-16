@@ -41,6 +41,8 @@ export const proportionsSchema = z.object({
 
 export const timeOfDaySchema = z.enum(['day', 'golden', 'night']);
 
+export const weatherSchema = z.enum(['clear', 'rain', 'snow', 'fog']);
+
 /**
  * Studio-editable schema. Every field maps 1:1 to `SceneSettings`, so the props
  * editor in Remotion Studio can drive the whole library without custom UI.
@@ -71,6 +73,7 @@ export const sceneSchema = z.object({
   seed: z.number(),
   scene: z.enum(['street', 'park', 'room', 'backdrop']),
   timeOfDay: timeOfDaySchema,
+  weather: weatherSchema,
   parallax: z.number().min(0).max(1),
   guides: z.boolean(),
   followCamera: z.boolean(),
