@@ -3,18 +3,17 @@
 **Read this first if you are picking this project up.** It records what state the
 repo is in, what was just done, and exactly where to continue.
 
-- **Last updated:** 2026-11-15
+- **Last updated:** 2026-11-16
 - **Version:** 2.2.0 (`package.json` and `Kit.VERSION` — kept in sync by a test)
 - **Branch:** `main`
 - **Repo:** `Ambitious513/2d-character`
-- **State:** ✅ green — the docs site is **complete (Stages 0–4)**. Re-verified
-  from a fresh clone of `5501430`: typecheck clean, **85/85 tests**, build ok
-  (docs chunk 160.80 kB / gzip 46.11 kB). CI run **23** was red on the two new
-  kit-ZIP guards — **build-artifact drift, not a code bug** — fixed by
-  regenerating the archive in `4a10194`. **CI run 24 (`4a10194`) is fully green:
-  all three jobs**, `verify` 85/85, `browser-smoke` 222 checks / 0 failed,
-  `render-smoke` 10/10 PNGs. Phase 5's four deliverables remain done and
-  CI-verified.
+- **State:** ✅ green — **Phase 5.1 is complete** (T0 CI hardening, T1a rig
+  weather, T1b studio + docs, closeout). Typecheck clean, **101/101 tests**,
+  **84 visual golden hashes** (the 48 pre-existing ones byte-unchanged),
+  studio smoke ✓, docs smoke **235 checks / 0 failed**, render-smoke 10/10
+  PNGs. Weather shipped end-to-end: `clear` / `rain` / `snow` / `fog` —
+  deterministic overlay in the rig, studio control, docs playground +
+  explorer, smokes and the scene sheet. See "Phase 5.1" below.
 - **Commits pushed to `origin/main`:** `6d32d3f` arrangement → `a49d9c7`
   handoff update → `73cce7b` CI fix → `d2e8376` Phase 5 → `582a57d` render-smoke
   record → `9ecaaaf` docs truth-up → `43d5e9a` docs plan → `73a58db` Stage 1 →
@@ -116,8 +115,8 @@ See rule 11 and "CI fix" below.
 | Step 0 — land the spec | `38bee81` | ✅ run **26** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke 10/10 PNGs |
 | T0 — CI hardening | `7dbae86` | ✅ run **27** | verify 85/85 · browser-smoke 222 checks / 0 failed · render-smoke PNG sequence ✓ (totals read from job logs) |
 | T1a — rig weather | `0bf5c03` + `457c407` (LF ZIP fix) | ✅ run **28 → 29** | 28 red on kit-ZIP CRLF drift (Windows checkout vs Linux CI); 29 green: verify **101/101** · browser-smoke 222/0 · render-smoke 10/10 PNGs · goldens 84, old 48 byte-identical |
-| T1b — studio + docs | *(this commit)* | ⏳ pending | see below — verify 101/101 · docs smoke 235 checks / 0 failed · studio smoke ✓ |
-| Closeout | — | — | not started |
+| T1b — studio + docs | `50a3f1b` | ✅ run **30** | verify 101/101 · studio smoke ✓ · docs smoke **235 checks / 0 failed** · render-smoke 10/10 PNGs (totals read from job logs) |
+| Closeout | *(this commit)* | ⏳ pending | ROADMAP + PROGRESS closed out, ZIP regenerated |
 
 ### Step 0 — workspace re-established, spec landed (`38bee81`)
 
@@ -284,6 +283,26 @@ schema or composition changes in this commit — pure presentation and gates.
 **Verified locally with the exact CI gate:** typecheck clean, **101/101
 tests**, build ok, `npm run smoke` (studio) ✓ against the production preview,
 `npm run smoke:docs` **235 checks / 0 failed**, ZIP regenerated per rule 11.
+
+**Pushed as `50a3f1b`**, confirmed green via the Actions API as **run 30**,
+totals read from the job logs: verify 101/101 · studio smoke ✓ + docs smoke
+235/0 · render-smoke 10/10 PNGs.
+
+### Closeout (this commit)
+
+- `docs/ROADMAP.md` — weather marked done; Phase 3 row no longer says
+  "deferred", Phase 5 closed 🟡 → ✅, golden/smoke counts updated.
+- This file — T1b row ticked with run 30, closeout row below, top summary
+  refreshed.
+- `docs/PHASE-5.1-SPEC.md` §7.6 ledger — T1b pushed/CI-green ticked; the
+  contract is fully discharged.
+
+**Open owner decisions** (not blocking, deferred deliberately):
+npm publish as `@stride/rig` — needs org ownership, a release process and a
+semver commitment; ZIP copy-in consumption works today. v1 shims
+(`Environment` alias, `environment` prop, v1 preset envelopes) — cheap, tested,
+and removing them is a breaking change that should ride a planned v3.0.0 with
+a migration note, not a feature phase.
 
 ---
 

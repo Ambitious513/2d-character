@@ -547,8 +547,8 @@ real; a committed-but-unpushed stage stays unticked.
 - [x] T1a pushed, CI green (run #29, `0bf5c03` + `457c407` LF-ZIP fix)
 - [x] T1b studio (Controls + stage attribute) · [x] docs playground + explorer + snippets · [x] smokes 222 → 235
 - [x] sheets (scene-sheet 4×3×4) + README/docs counts
-- [ ] T1b pushed, CI green (run #____)
-- [ ] ROADMAP + PROGRESS closed out, ZIP regenerated
+- [x] T1b pushed, CI green (run #30, `50a3f1b`)
+- [x] ROADMAP + PROGRESS closed out, ZIP regenerated
 
 ---
 

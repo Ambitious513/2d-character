@@ -8,9 +8,9 @@ own.
 | --- | --- | --- |
 | 1 | Foundation & character quality | ✅ done |
 | 2 | Cast & wardrobe depth | ✅ done |
-| 3 | Environment library | ✅ done (weather deferred) |
+| 3 | Environment library | ✅ done |
 | 4 | Remotion packaging & presets | ✅ done (npm publish open) |
-| 5 | Studio polish, docs site & CI | 🟡 mostly done — docs site ✅ done, weather open |
+| 5 | Studio polish, docs site & CI | ✅ done — weather landed via Phase 5.1 |
 
 > This file was deleted in commit `e301ed1` and restored from `629708d` during the
 > recovery pass. Statuses above reflect the code as it actually stands, not the
@@ -62,8 +62,9 @@ behind a `SceneLayer` registry with `registerScene()`. Shared lighting via
 `palette.ts` across `day` / `golden` / `night`, plus parallax depth and a follow
 camera.
 
-**Deferred:** weather (rain / snow / fog). No `weather` field exists in
-`SceneSettings` yet. Fold into Phase 5 or a Phase 3.1 if wanted.
+**Weather landed in Phase 5.1** (previously deferred): `clear` / `rain` /
+`snow` / `fog` on `SceneSettings`, one deterministic overlay drawn behind and
+in front of the character. See "Phase 5.1" below.
 
 ## Phase 4 — Remotion packaging & presets ✅
 
@@ -86,7 +87,7 @@ camera.
 `private: true` with no library build / `exports` map. Copy-in consumption works
 today. See `PROGRESS.md` → "Open decisions".
 
-## Phase 5 — Studio polish, docs site & CI 🟡
+## Phase 5 — Studio polish, docs site & CI ✅
 
 Done and CI-verified:
 
@@ -95,8 +96,8 @@ Done and CI-verified:
   walk/idle/run shortcuts.
 - **Visual regression snapshots** — `tests/visual-goldens.tsx`,
   `tests/visual.test.tsx`, and `tests/__golden__/visual-hashes.json`
-  (48 SHA-256 entries). Regenerate intentional visual changes with
-  `npm run update:visual-goldens`.
+  (84 SHA-256 entries: 48 rig/scene + 36 weather cross-entries). Regenerate
+  intentional visual changes with `npm run update:visual-goldens`.
 - **CI render smoke** — `.github/workflows/ci.yml` has `render-smoke`
   (`needs: verify`), rendering `CharacterOnly` frames 0–9 as a PNG sequence and
   asserting exactly 10 files. First green run: CI #9 / 43636701309. This verifies
@@ -108,14 +109,12 @@ Done and CI-verified:
 - **Docs site** with live `<Player>` examples — **✅ complete (Stages 0–4)**.
   `#/docs`: nine sections, a fully steerable playground, four live explorers, a
   real preset importer, export recipes. Gated by `npm run smoke:docs`
-  (**222 browser checks**) which runs in CI against the production build, and by
-  two packaging tests that walk the barrel's import graph to prove no docs code
-  leaks into the library. See `docs/DOCS_SITE_PLAN.md`.
+  (**235 browser checks**, weather included) which runs in CI against the
+  production build, and by two packaging tests that walk the barrel's import
+  graph to prove no docs code leaks into the library. See
+  `docs/DOCS_SITE_PLAN.md`.
 
-Still open:
-
-- **Weather controls** (`rain` / `snow` / `fog`) — deferred from Phase 3; no
-  `weather` field exists yet.
-
-The docs site has landed, so the only thing between Phase 5 and closed is
-**weather** — treat it as Phase 5.1 / Phase 3.1 if the owner wants it next.
+- **Weather (Phase 5.1)** — ✅ complete. `clear` / `rain` / `snow` / `fog`
+  on `SceneSettings`: deterministic two-pass overlay in the rig, studio
+  control, docs playground + scene explorer, smokes, sheets. Contract and
+  ledger in `docs/PHASE-5.1-SPEC.md`; nothing remains open.
